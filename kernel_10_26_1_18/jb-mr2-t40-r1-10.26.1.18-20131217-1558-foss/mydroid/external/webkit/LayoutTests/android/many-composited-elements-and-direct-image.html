@@ -1,0 +1,69 @@
+<html>
+<head>
+<title>Add many compositing layers on blank background with a transparent composited image behind them</title>
+<style>
+body {
+    min-width: 800px;
+    min-height: 600px;
+}
+img {
+    -webkit-transform: translateZ(0);
+    position: absolute;
+    left: 550;
+    top: 0;
+    opacity: 0.5;
+}
+.layer {
+    -webkit-transform: translateZ(0);
+    width: 25px;
+    height: 25px;
+    position: absolute;
+    background-color: #0f0;
+    font-size: 50%;
+}
+</style>
+<script>
+if (window.layoutTestController) {
+    layoutTestController.dumpAsText(true);
+    layoutTestController.waitUntilDone();
+}
+
+var elementCount = 0;
+var w = 25;
+var resultCount = 600 / w * 600 / w;
+var ctx;
+
+function addOne() {
+    var d = document.createElement('div');
+    d.style.left = ((elementCount * w) % 600) + 'px';
+    d.style.top = (Math.floor(elementCount * w / 600) * w % 600) + 'px';
+    d.classList.add('layer');
+    d.textContent = elementCount;
+    document.body.appendChild(d);
+
+    ++elementCount;
+}
+
+function addSixteen() {
+    for (var i = 0; i < 16 && elementCount < resultCount; ++i) {
+        addOne();
+    }
+    if (elementCount < resultCount) {
+        setTimeout(addSixteen, 20);
+    } else if (window.layoutTestController) {
+        setTimeout(function() {
+            layoutTestController.notifyDone();
+        }, 300);
+    }
+}
+
+function init() {
+    addSixteen();
+}
+</script>
+</head>
+
+<body onload="init()">
+<img src="../compositing/resources/simple_image.png">
+</body>
+</html>

@@ -1,0 +1,4 @@
+Test worker fetch of blocked url. Should print a "PASS" statement.
+
+PASS
+

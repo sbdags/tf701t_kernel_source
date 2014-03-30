@@ -1,0 +1,7 @@
+PASS drawing timed out in less than 4 seconds
+PASS context is lost
+PASS context lost event was received
+PASS successfullyParsed is true
+
+TEST COMPLETE
+

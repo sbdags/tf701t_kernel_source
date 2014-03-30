@@ -1,0 +1,40 @@
+// Copyright (C) 2010 The Android Open Source Project
+// Copyright (c) 2011-2012, NVIDIA CORPORATION.  All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ----------------------------------------------------------------------------
+//
+// This file consists of lines with specifications of what
+// to do with layout tests in Dump Render Tree.
+// The lines can be either specific tests or whole directories
+// in which case the options apply to all test cases in that directory
+// and any subdirectory.
+//
+// This file overrides lines listed in test_expectations_nwrt.txt
+
+// Fuzzy layer boundaries bug does not repro in sw mode
+BUGNV : compositing/layer-clipping/clipped-by-parent-zoomed-in.html = PASS
+
+// Canvas compositing regressions introduced by JB
+BUGNV1016756 : fast/canvas/transparent-canvas-with-bg.html = IMAGE
+BUGNV1016756 : fast/canvas/transparent-canvas.html = IMAGE
+
+// Slow with the sw path (somewhat inconsistently)
+SLOW BUGNV : webgl-conformance/dumpAsText/conformance/extensions/oes-standard-derivatives.html = PASS
+
+// Fail in sw mode:
+BUGNV931165 : plugins/android/surface-texture-hang.html = TIMEOUT
+BUGNV931165 : plugins/android/invalid-window-dimensions.html = TIMEOUT
+
+// Inverted rendering not implemented for SW composting mode.
+BUGNV : android/use-inverted-rendering.html = FAIL

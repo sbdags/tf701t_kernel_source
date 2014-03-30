@@ -1,0 +1,61 @@
+<html>
+<head>
+<title>Add many compositing layers on blank background</title>
+<style>
+body {
+    min-width: 800px;
+    min-height: 600px;
+    background-color: #f00;
+}
+.layer {
+    -webkit-transform: translateZ(0);
+    width: 25px;
+    height: 25px;
+    position: absolute;
+    background-color: #0f0;
+    font-size: 50%;
+}
+</style>
+<script>
+if (window.layoutTestController) {
+    layoutTestController.dumpAsText(true);
+    layoutTestController.waitUntilDone();
+}
+
+var elementCount = 0;
+var w = 25;
+var resultCount = 800 / w * 600 / w;
+
+function addOne() {
+    var d = document.createElement('div');
+    d.style.left = ((elementCount * w) % 800) + 'px';
+    d.style.top = (Math.floor(elementCount * w / 800) * w % 600) + 'px';
+    d.classList.add('layer');
+    d.textContent = elementCount;
+    document.body.appendChild(d);
+
+    ++elementCount;
+}
+
+function addEight() {
+    for (var i = 0; i < 8 && elementCount < resultCount; ++i) {
+        addOne();
+    }
+    if (elementCount < resultCount) {
+        setTimeout(addEight, 20);
+    } else if (window.layoutTestController) {
+        setTimeout(function() {
+            layoutTestController.notifyDone();
+        }, 300);
+    }
+}
+
+function init() {
+    addEight();
+}
+</script>
+</head>
+
+<body onload="init()">
+</body>
+</html>

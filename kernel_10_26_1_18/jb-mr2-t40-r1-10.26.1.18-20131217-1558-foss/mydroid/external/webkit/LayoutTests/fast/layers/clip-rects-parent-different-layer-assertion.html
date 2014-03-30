@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#force-composited { -webkit-transform: translateZ(0px); position: absolute; height:15px;width:15px;}
+#composited { position:relative; width:100px; height: 100px; background: gray}
+#body-positive-zindex-list { position:absolute; top:200px; width:20px; height: 20px; background: green}
+#composited-normal-flow { overflow:hidden;}
+</style>
+</head>
+<body>
+<div id="force-composited"></div>
+<div id="composited">
+  <div id="body-positive-zindex-list"></div>
+  <div id="composited-normal-flow"></div>
+</div>
+PASS if no crash.
+<script>
+if (window.layoutTestController)
+  layoutTestController.dumpAsText();
+</script>
+</body>
+</html>

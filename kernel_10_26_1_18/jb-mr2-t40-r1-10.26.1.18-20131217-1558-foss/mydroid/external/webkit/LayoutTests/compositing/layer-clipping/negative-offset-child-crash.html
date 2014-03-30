@@ -1,0 +1,35 @@
+<head>
+<style>
+.a {
+  position: absolute;
+  border: 1px black solid;
+  -webkit-transform: translate3D(0px, 0px, 0px);
+  width: 50px;
+  height: 50px;
+}
+
+/* b will span over a's borders */
+.b {
+  position: absolute;
+  top: -25px;
+  left: -25px;
+  width: 50px;
+  height: 50px;
+  background: green;
+}
+
+</style>
+</head>
+<body>
+<!-- The test should not crash in ASSERT -->
+<div class="a">
+  <div class="b"></div>
+</div>
+<script>
+if (window.layoutTestController) {
+    layoutTestController.dumpAsText();
+    layoutTestController.waitUntilDone();
+    window.setTimeout(function() { layoutTestController.notifyDone();}, 100);
+}
+</script>
+</body>

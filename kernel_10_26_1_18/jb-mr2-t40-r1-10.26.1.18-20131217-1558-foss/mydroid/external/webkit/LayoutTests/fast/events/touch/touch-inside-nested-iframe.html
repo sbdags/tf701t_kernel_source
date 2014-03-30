@@ -1,0 +1,40 @@
+<html>
+<script src="../../js/resources/js-test-pre.js"></script>
+<script src="./resources/touch-util.js"></script>
+<body>
+<iframe style="position:absolute; top:100px; left:50px; width:300px; height:300px" src="./resources/touch-inside-nested-iframe2.html"></iframe>
+<p id="description"></p>
+<div id="console"></div>
+<script type="text/javascript">
+description('Test nested iframes receive touches correctly.');
+
+var touch = null;
+
+function testComplete(event)
+{
+    touch = event.touches[0];
+    shouldBe("touch.pageX", "50");
+    shouldBe("touch.pageY", "50");
+    isSuccessfullyParsed();
+    layoutTestController.notifyDone();
+}
+
+function runTest(){
+    runTouchTest(function() {
+        // Touch the center of the div in the nested iframe.
+        // 50px,100px is offset to iframe in main frame,
+        // 2px,2px for the iframe border
+        // 100px,(500-350px) is offset to iframe in iframe,
+        // 2px,2px for the iframe border
+        // 50px,50px for the mid-point
+        eventSender.addTouchPoint(204, 304);
+        eventSender.touchStart();
+    });
+}
+
+if (window.layoutTestController) {
+    layoutTestController.waitUntilDone();
+}
+</script>
+</body>
+</html>

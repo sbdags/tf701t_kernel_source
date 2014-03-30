@@ -1,0 +1,22 @@
+<!-- Each square should appear the same color. -->
+
+<canvas id='premultiplied' width='128' height='128'></canvas>
+<canvas id='non-premultiplied' width='128' height='128'></canvas>
+<canvas id='premultiplied-transparent' style='opacity: .5' width='128' height='128'></canvas>
+<canvas id='non-premultiplied-transparent' style='opacity: .5' width='128' height='128'></canvas>
+
+<script>
+  if (window.layoutTestController)
+    layoutTestController.dumpAsText(true);
+
+  var fill = function(id, premulitplied, r, g, b, a) {
+    var gl = document.getElementById(id).getContext('experimental-webgl', {premultipliedAlpha: premulitplied});
+    gl.clearColor(r, g, b, a);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  };
+
+  fill('premultiplied', true, 0, .25, 0, .25);
+  fill('non-premultiplied', false, 0, 1, 0, .25);
+  fill('premultiplied-transparent', true, 0, .5, 0, .5);
+  fill('non-premultiplied-transparent', false, 0, 1, 0, .5);
+</script>

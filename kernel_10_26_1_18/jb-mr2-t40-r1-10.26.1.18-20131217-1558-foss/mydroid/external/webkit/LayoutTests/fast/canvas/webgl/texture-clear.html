@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Texture clearing test</title>
+        <script src="../../js/resources/js-test-pre.js"></script>
+        <script src="resources/webgl-test.js"></script>
+        <script src="resources/webgl-test-utils.js"></script>
+    </head>
+    <body>
+        <canvas id="example" width="1024px" height="1024px"></canvas>
+    </body>
+
+    <script>
+        function setupTexture(texture, width, height, shouldFail) {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+            var error = gl.getError();
+            if (error != gl.NO_ERROR && !shouldFail)
+                console.log(error);
+
+            return error;
+        }
+
+        function setupFbo(texture) {
+            var fbo = gl.createFramebuffer();
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+            return fbo;
+        }
+
+        function checkResult(width, height) {
+            var buf = new Uint8Array(width * height * 4);
+            gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+
+            var error = gl.getError();
+            if (error != gl.NO_ERROR) {
+                console.log(error);
+                return false;
+            }
+
+            var success = true;
+            for (var i = 0; i < buf.length && success; i += 4) {
+                var r = buf[i];
+                var g = buf[i + 1];
+                var b = buf[i + 2];
+                var a = buf[i + 3];
+                var x = i % width;
+                var y = Math.floor(i / width);
+
+                success = success && (r == 0 && g == 0 && b == 0 && a == 0);
+                if (!success)
+                    console.log("(" + x + ", " + y + ") = r:" + r + " g:" + g +" b:" + b +" a: " + a);
+            }
+
+            return success;
+        }
+
+        description("This test creates different sized textures and checks if they're cleared properly.");
+
+        var gl = create3DContext(document.getElementById("example"));
+
+        var sizes = [
+            { width:    16, height:    16, shouldFail: false },
+            { width:   128, height:   128, shouldFail: false },
+            { width:   256, height:   256, shouldFail: false },
+            { width:   512, height:   512, shouldFail: false },
+            { width:   415, height:   768, shouldFail: false },
+            { width:  2048, height:  2031, shouldFail: false },
+            { width:  4096, height:  4096, shouldFail: false },
+            { width: 50000, height: 68903, shouldFail:  true },
+        ];
+
+        for (var i in sizes) {
+            var size = sizes[i];
+            var msg = "Checking texture of size " + size.width + "x" + size.height;
+
+            var texture = gl.createTexture();
+            var success = setupTexture(texture, size.width, size.height, size.shouldFail) == gl.NO_ERROR;
+
+            var fbo = 0;
+
+            if (success) {
+                fbo = setupFbo(texture);
+                success = success && checkResult(size.width, size.height);
+            }
+
+            if (success != size.shouldFail)
+                testPassed(msg);
+            else
+                testFailed(msg);
+
+            if (fbo != 0)
+                gl.deleteFramebuffer(fbo);
+
+            gl.deleteTexture(texture);
+        }
+
+        successfullyParsed = true;
+    </script>
+    <script src="../../js/resources/js-test-post.js"></script>
+</html>
+

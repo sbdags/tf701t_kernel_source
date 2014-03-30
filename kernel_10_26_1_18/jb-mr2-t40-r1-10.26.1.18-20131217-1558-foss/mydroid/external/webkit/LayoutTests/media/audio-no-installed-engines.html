@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <script>
+            if (window.layoutTestController && !window.testRunner)
+                window.testRunner = window.layoutTestController;
+            if (window.testRunner)
+                testRunner.dumpAsText();
+            var audio = new Audio("content/empty.wav");
+            audio.play();
+        </script>
+    </head>
+
+    <body>
+        <p>PASSED -- crash using Audio with no installed engines bug 27479.</p>
+    </body>
+</html>

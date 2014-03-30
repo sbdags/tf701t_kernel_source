@@ -1,0 +1,54 @@
+<html>
+<head>
+<style>
+.ac { -webkit-transform: translateZ(0px); }
+div {
+ border: 1px solid black;
+ width: 100px;
+ height: 30px;
+}
+
+</style>
+</head>
+<body>
+<div class="ac" style="background-color: rgb(255,0,0)"></div>
+<div style="background-color: rgb(255,0,0)"></div>
+<canvas width="800px" height="30px"></canvas>
+
+<div class="ac" style="background-color: rgb(0,255,0)"></div>
+<div style="background-color: rgb(0,255,0)"></div>
+<canvas width="800px" height="30px"></canvas>
+
+<div class="ac" style="background-color: rgb(0,0,255)"></div>
+<div style="background-color: rgb(0,0,255)"></div>
+<canvas width="800px" height="30px"></canvas>
+
+<script type="text/javascript">
+var fillFrames = 0;
+var fillIterations = 4;
+
+if (window.layoutTestController) {
+    layoutTestController.dumpAsText(true);
+    layoutTestController.waitUntilDone();
+    layoutTestController.setUseInvertedRendering(true, .5);
+}
+
+function fillCanvases() {
+    var canvases = document.getElementsByTagName("canvas");
+    var ctx;
+    var colors = ["rgb(255,0,0)", "rgb(0,255,0)", "rgb(0,0,255)"];
+    for (var i = 0; i < canvases.length; ++i) {
+        ctx = canvases[i].getContext("2d");
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    }
+    if (++fillFrames < fillIterations)
+        setTimeout(fillCanvases, 15);
+    else {
+       if (window.layoutTestController)
+           layoutTestController.notifyDone();
+    }
+}
+
+fillCanvases();
+</script>

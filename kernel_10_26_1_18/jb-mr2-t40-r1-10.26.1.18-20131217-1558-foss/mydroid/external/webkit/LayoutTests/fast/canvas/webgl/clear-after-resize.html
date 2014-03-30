@@ -1,0 +1,13 @@
+<!-- The WebGL canvas should be appear black, not red -->
+<canvas id='canvas' width='256' height='256'></canvas>
+<script>
+    if (window.layoutTestController)
+        layoutTestController.dumpAsText(true);
+    var canvas = document.getElementById('canvas');
+    var gl = canvas.getContext('experimental-webgl', {alpha:false});
+    gl.clearColor(1,0,0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    setTimeout(function() {
+        canvas.width = canvas.height = 128;
+    }, 0);
+</script>

@@ -1,0 +1,39 @@
+<!-- Ensures proper blending when there are more layers than hw texture units. -->
+
+<style>
+body {
+    background-color: black;
+    padding: 0;
+    margin: 0;
+    color: white;
+    font-size: 14px
+}
+canvas {
+    position: absolute
+}
+</style>
+
+<canvas id='c' width='512' height='512'></canvas>
+
+<script>
+    if (window.layoutTestController)
+        layoutTestController.dumpAsText(true);
+
+    var fillCanvas = function(canvas) {
+        var gl = canvas.getContext('experimental-webgl', {premultipliedAlpha: false});
+        gl.clearColor(0.5, 1, 1, 0.04);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+
+    for (var size = 512; size > 0; size -= 20) {
+        var canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        canvas.style.left = (10 + (512 - size) / 2) + 'px';
+        canvas.style.top = (10 + (512 - size) / 2) + 'px';
+        canvas.style.width = size + 'px';
+        canvas.style.height = size + 'px';
+        fillCanvas(canvas);
+        document.body.appendChild(canvas);
+    }
+</script>

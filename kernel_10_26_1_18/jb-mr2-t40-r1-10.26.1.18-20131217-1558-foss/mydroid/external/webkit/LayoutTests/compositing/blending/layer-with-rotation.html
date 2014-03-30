@@ -1,0 +1,27 @@
+<!-- Ensures proper blending when not all layers go to the BlendingTree. -->
+
+<style>
+body {
+    background-color: black;
+    color: white;
+    font-size: 14px
+}
+</style>
+
+<canvas style='-webkit-transform:rotate(0deg)' id='c1' width='256' height='256'></canvas>
+<canvas style='-webkit-transform:rotate(30deg)' id='c2' width='256' height='256'></canvas>
+<canvas style='-webkit-transform:rotate(0deg)' id='c3' width='256' height='256'></canvas>
+
+<script>
+    if (window.layoutTestController)
+        layoutTestController.dumpAsText(true);
+
+    var fillCanvas = function(id, r, g, b, a) {
+        var gl = document.getElementById(id).getContext('experimental-webgl', {premultipliedAlpha: false});
+        gl.clearColor(r, g, b, a);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    };
+    fillCanvas('c1', 0.3, 0.15, 0.7, 0.4);
+    fillCanvas('c2', 1, 0, 0, 0.8);
+    fillCanvas('c3', 0.3, 0.15, 0.7, 0.4);
+</script>

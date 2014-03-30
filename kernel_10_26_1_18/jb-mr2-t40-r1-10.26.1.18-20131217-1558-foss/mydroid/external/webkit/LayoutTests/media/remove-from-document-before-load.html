@@ -1,0 +1,13 @@
+<script>
+if (window.layoutTestController && !window.testRunner)
+    window.testRunner = window.layoutTestController;
+if (window.testRunner) {
+    testRunner.dumpAsText();
+    testRunner.waitUntilDone();
+}
+</script>
+<body onload="document.body.innerHTML='PASS: A crash did not occur when the media element was removed before loading.';
+    if (window.testRunner)
+        testRunner.notifyDone();">
+<video src="A"></video>
+</body>

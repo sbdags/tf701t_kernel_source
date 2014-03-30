@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>Test for solid color, transformed layers being visible</title>
+<style>
+div {
+   /* Transform must be other than just scales and translations */
+  -webkit-transform: rotate(30deg) translateZ(0px);
+  -webkit-transition: 0.1s ease -webkit-transform; /* Avoid layers merging. */
+  background: green;
+  width: 256px; /* Fill the few tiles. Fill must be full, so that the pure color check would apply. */
+  height: 256px;
+  position:relative;
+  left: 128px;
+  top: 128px;
+}
+</style>
+</head>
+<body>
+<!-- You should see a solid, rotated green layer. -->
+<div></div>
+<script>
+if (window.layoutTestRunner)
+   layoutTestRunner.dumpAsText(true);
+</script>
+</body>
+</html>

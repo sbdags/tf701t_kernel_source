@@ -1,0 +1,78 @@
+<html>
+<body>
+<div id="debug"></div>
+<script type="text/javascript">
+var canvases = [];
+var timeoutIteration = 0;
+var debug = document.getElementById("debug");
+
+function runAndLogException(f) {
+  try {
+    f();
+  } catch (e) {
+    var msg = "Test failed. Exception: " + e;
+    debug.innerHTML += "<p>" + msg;
+    console.log(msg);
+  }
+}
+
+function fill(ctx, color) {
+  ctx.fillStyle = "rgba(" + color.join(",") + ",1)";
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  // Read the result to avoid running out of memory
+  // during lazy, deferred fill.
+  var data = ctx.getImageData(0, 0, 1, 1).data;
+  if (data[0] != color[0] || data[1] != color[1] || data[2] != color[2])
+    throw "Unexpected pixel value. Was: " + data[0] + "," + data[1] + "," + data[2] + ". Expected:" + color.join(",");
+}
+
+function testCreateCanvases() {
+  var canvas;
+  var ctx;
+  while (true) {
+    canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    document.body.appendChild(canvas);
+    ctx = canvas.getContext("2d");
+    if (!ctx)
+      break;
+    console.log("Creating canvas " + canvases.length);
+    canvases.push(canvas);
+    fill(ctx, [255,0,0]);
+  }
+  runTests();
+}
+
+function testUseCanvases() {
+  for (var i = 0; i < canvases.length; ++i) {
+    var ctx = canvases[i].getContext("2d");
+    fill(ctx, [0,255,0]);
+  }
+  runTests();
+}
+
+function runTests() {
+  if (timeoutIteration == 0)
+    setTimeout(function() { runAndLogException(testCreateCanvases); } , 10);
+  else if (timeoutIteration < 5)
+    setTimeout(function() { runAndLogException(testUseCanvases); } , 10);
+  else {
+    debug.innerHTML += "<p>Success.";
+    if (window.layoutTestController)
+      layoutTestController.notifyDone();
+  }
+  ++timeoutIteration;
+}
+
+debug.innerHTML += "<p>Test start";
+if (window.layoutTestController) {
+  layoutTestController.dumpAsText();
+  layoutTestController.waitUntilDone();
+}
+
+runTests();
+
+</script>
+</body>
+</html>

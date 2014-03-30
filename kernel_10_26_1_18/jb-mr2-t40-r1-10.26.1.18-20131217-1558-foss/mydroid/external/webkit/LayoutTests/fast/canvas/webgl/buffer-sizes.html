@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Buffer allocation test</title>
+        <script src="../../js/resources/js-test-pre.js"></script>
+        <script src="resources/webgl-test.js"></script>
+    </head>
+    <body>
+        <canvas id="example" width="64px" height="64px">
+        </canvas>
+    </body>
+
+    <script id="vshader" type="x-shader/x-vertex">
+        attribute vec3 inPosition;
+        attribute vec4 inColor0;
+        attribute vec4 inColor1;
+        attribute vec4 inColor2;
+        attribute vec4 inColor3;
+        attribute vec4 inColor4;
+        attribute vec4 inColor5;
+        attribute vec4 inColor6;
+        attribute vec4 inColor7;
+
+        varying vec4 color;
+
+        void main()
+        {
+            color = abs(inColor0) + abs(inColor1) + abs(inColor2) + abs(inColor3) +
+                    abs(inColor4) + abs(inColor5) + abs(inColor6) + abs(inColor7);
+
+            color = clamp(color, vec4(0.0), vec4(1.0));
+
+            gl_Position = vec4(inPosition, 1.0);
+        }
+    </script>
+
+    <script id="fshader" type="x-shader/x-fragment">
+        precision mediump float;
+
+        varying vec4 color;
+
+        void main()
+        {
+            if (color == vec4(0.0))
+                discard;
+
+            gl_FragColor = color;
+        }
+    </script>
+
+    <script>
+        description("This test allocates a number of different sized buffers.");
+
+        function createBuffer(size, shouldFail) {
+            var msg = "Creating buffer with size=" + size;
+            var buffer = gl.createBuffer();
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, size, gl.STATIC_DRAW);
+
+            var error = gl.getError();
+
+            if (error != gl.NO_ERROR) {
+                if (shouldFail)
+                    testPassed(msg + " failed");
+                else
+                    testFailed(msg + " failed");
+
+                gl.deleteBuffer(buffer);
+                return;
+            }
+
+            testPassed(msg + " succeeded");
+
+            return { bufferObject : buffer, size : size };
+        }
+
+        // Draw a square on the canvas using attributes from the cleared buffer.
+        function drawWithBuffer(buffer) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+            gl.enableVertexAttribArray(0);
+            gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+            // Increment offset by number of vertices * sizeof(vec4) * num attributes.
+            var increment = (vertices.length / 3) * 16 * 8;
+
+            for (var offset = 0; offset < buffer.size; offset += increment) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+                gl.enableVertexAttribArray(0);
+                gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+                for (var i = 0; i < 8; i++) {
+                    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.bufferObject);
+
+                    gl.enableVertexAttribArray(1 + i);
+                    gl.vertexAttribPointer(1 + i, 4, gl.FLOAT, false, 0, offset);
+                }
+                gl.drawArrays(gl.TRIANGLES, 0, 24);
+                var error = gl.getError();
+
+                if (error != 0)
+                    console.log(error);
+            }
+        }
+
+        // The result needs to be checked via readPixels, because we can't map any buffers or
+        // read from them any other way.
+        function checkResult() {
+            var buf = new Uint8Array(64 * 64 * 4);
+            gl.readPixels(0, 0, 64, 64, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+
+            var success = true;
+
+            for (var i = 0; i < buf.length && success; i += 4) {
+                var r = buf[i];
+                var g = buf[i + 1];
+                var b = buf[i + 2];
+                var a = buf[i + 3];
+
+                success = success && (r == 0 && b == 0 && g == 255 && a == 255);
+                if (!success)
+                    console.log("r:" + r + " g " + g +" b:" + b +" a: " + a);
+            }
+
+            assertMsg(success, "There should be no non-green pixels on the canvas.");
+        }
+
+        if (window.layoutTestController) {
+            layoutTestController.overridePreference("WebKitWebGLEnabled", "1");
+            layoutTestController.dumpAsText();
+        }
+
+        gl = initWebGL("example", "vshader", "fshader", [ "inPosition", "inColor0", "inColor1", "inColor2", "inColor3",
+                       "inColor4", "inColor5", "inColor6", "inColor7" ], [ 0.0, 1.0, 0.0, 1.0 ], 100);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.disable(gl.DEPTH_TEST);
+        gl.disable(gl.BLEND);
+
+        var squareBuffer = gl.createBuffer();
+
+        // We need four different squares because using a single square results in
+        // too many calls to drawArrays. This is the reason why the shader also uses
+        // eight vertex attributes fetched from the cleared buffer, so we can process
+        // more data in a single pass.
+        var vertices = [
+            // Upper left corner.
+             0.0,  1.0, 0.1,
+            -1.0,  1.0, 0.1,
+            -1.0,  0.0, 0.1,
+             0.0,  1.0, 0.1,
+            -1.0,  0.0, 0.1,
+             0.0,  0.0, 0.1,
+            // Upper right corner.
+             1.0,  1.0, 0.0,
+             0.0,  1.0, 0.0,
+             0.0,  0.0, 0.0,
+             1.0,  1.0, 0.0,
+             0.0,  0.0, 0.0,
+             1.0,  0.0, 0.0,
+            // Lower left corner.
+             0.0,  0.0, 0.0,
+            -1.0,  0.0, 0.0,
+            -1.0, -1.0, 0.0,
+             0.0,  0.0, 0.0,
+            -1.0, -1.0, 0.0,
+             0.0, -1.0, 0.0,
+            // Lower right corner.
+             1.0,  0.0, 0.0,
+            -1.0,  0.0, 0.0,
+            -1.0, -1.0, 0.0,
+             1.0,  0.0, 0.0,
+            -1.0, -1.0, 0.0,
+             1.0, -1.0, 0.0
+        ];
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+        // Create non-huge buffers.
+        var sizes = [
+            1024,               // 1kB
+            1024 * 1024,        // 1MB
+            1024 * 1024 * 32,   // 32MB
+            1024 * 1024 * 64,   // 64MB
+        ];
+
+        for (var i in sizes) {
+            var buffer = createBuffer(sizes[i], false);
+
+            drawWithBuffer(buffer);
+            checkResult();
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            gl.deleteBuffer(buffer.bufferObject);
+        }
+
+        // Try to create a huge buffer (3GB).
+        var hugeSize = 1024 * 1024 * 1024 * 3;
+        createBuffer(hugeSize, true);
+
+        gl.deleteBuffer(squareBuffer);
+
+        var successfullyParsed = true;
+    </script>
+    <script src="../../js/resources/js-test-post.js"></script>
+</html>

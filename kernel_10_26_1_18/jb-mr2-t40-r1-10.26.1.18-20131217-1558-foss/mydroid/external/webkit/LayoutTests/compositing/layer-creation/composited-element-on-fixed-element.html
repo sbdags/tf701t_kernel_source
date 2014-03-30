@@ -1,0 +1,67 @@
+<html>
+<head>
+<style>
+html, body { margin: 0px; }
+body { height: 100% }
+.g { background-color: green; }
+#big {
+  position: fixed;
+  width: 150px;
+  height: 150px;
+}
+#canvas {
+  position: absolute;
+  -webkit-transform: translateZ(0);
+  background-color: red;
+  top: 50px;
+  left: 45px;
+  width: 50px;
+  height: 50px;
+}
+#overlap {
+  position: absolute;
+  top: 50px;
+  left: 45px;
+  width: 50px;
+  height: 50px;
+}
+#nooverlap {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 50px;
+  height: 50px;
+}
+#nooverlap2 {
+  position: absolute;
+  top: 100px;
+  left: 90px;
+  width: 50px;
+  height: 50px;
+}
+
+#layertree {
+  position: absolute;
+  left: 10000px;
+  top: 0px;
+}
+</style>
+</head>
+<body>
+  <div id="big">
+    <div class="g" id="nooverlap"></div>
+    <div id="canvas"></div>
+    <div class="g" id="overlap"></div>
+    <div class="g" id="nooverlap2"></div>
+  </div>
+  <pre id="layertree"></pre>
+  <script>
+    if (window.layoutTestController) {
+        layoutTestController.dumpAsText(true);
+        window.addEventListener('load', function() {
+            document.getElementById("layertree").innerText = layoutTestController.layerTreeAsText();
+        }, false);
+    }
+  </script>
+</body>
+</html>

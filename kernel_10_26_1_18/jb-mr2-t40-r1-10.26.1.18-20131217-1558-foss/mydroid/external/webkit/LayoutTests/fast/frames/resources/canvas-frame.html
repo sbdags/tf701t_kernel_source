@@ -1,0 +1,25 @@
+<html>
+<head>
+<script type="text/javascript">
+var canvas;
+var ctx;
+
+function update() {
+    ctx.fillStyle="green";
+    ctx.fillRect(0, 0, 100, 100);
+}
+
+function init() {
+    canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+    ctx = canvas.getContext("2d");
+    ctx.fillStyle = "red";
+    ctx.fillRect(0, 0, 100, 100);
+
+    setTimeout(update, 500);
+}
+</script>
+</head>
+<body onload="init()">
+</body>
+</html>

@@ -1,0 +1,23 @@
+<html>
+<head>
+<script src="../../js/resources/js-test-pre.js"></script>
+</head>
+<body>
+
+<form id='f' onsubmit="didSubmit=true;return false;">
+  <input id='i' type="text" value="a"></input>
+  <input id='s' type="submit" value="submit"></input>
+</form>
+
+<script>
+description('This test verifies that forms with nameless controls do not assert.');
+var didSubmit = false;
+var form = document.getElementById('f');
+var s = document.getElementById('s');
+s.click();
+shouldBe("didSubmit", "true");
+
+</script>
+<script src="../../js/resources/js-test-post.js"></script>
+</body>
+</html>

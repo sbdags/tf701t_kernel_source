@@ -1,0 +1,17 @@
+This test creates different sized textures and checks if they're cleared properly.
+
+On success, you will see a series of "PASS" messages, followed by "TEST COMPLETE".
+
+
+PASS Checking texture of size 16x16
+PASS Checking texture of size 128x128
+PASS Checking texture of size 256x256
+PASS Checking texture of size 512x512
+PASS Checking texture of size 415x768
+PASS Checking texture of size 2048x2031
+PASS Checking texture of size 4096x4096
+PASS Checking texture of size 50000x68903
+PASS successfullyParsed is true
+
+TEST COMPLETE
+

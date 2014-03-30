@@ -1,0 +1,34 @@
+layer at (0,0) size 800x600
+  RenderView at (0,0) size 800x600
+layer at (0,0) size 800x303
+  RenderBlock {HTML} at (0,0) size 800x303
+    RenderBody {BODY} at (8,16) size 784x279
+      RenderBlock {P} at (0,0) size 784x19
+        RenderText {#text} at (0,0) size 530x19
+          text run at (0,0) width 530: "The look of the controls should not change when styled under strict mode."
+      RenderBlock (anonymous) at (0,35) size 784x244
+        RenderText {#text} at (320,225) size 4x19
+          text run at (320,225) width 4: " "
+        RenderText {#text} at (0,0) size 0x0
+layer at (8,51) size 320x240
+  RenderVideo {VIDEO} at (0,0) size 320x240 [color=#FF0000]
+layer at (332,51) size 320x240
+  RenderVideo {VIDEO} at (324,0) size 320x240
+layer at (8,51) size 320x240
+  RenderBlock (relative positioned) {DIV} at (0,0) size 320x240
+layer at (8,243) size 320x48
+  RenderFlexibleBox (positioned) {DIV} at (0,192) size 320x48
+    RenderButton {INPUT} at (0,0) size 48x48
+    RenderFlexibleBox {DIV} at (48,0) size 224x48
+      RenderSlider {INPUT} at (0,0) size 224x48
+        RenderBlock {DIV} at (0,8) size 32x32
+    RenderButton {INPUT} at (272,0) size 48x48
+layer at (332,51) size 320x240
+  RenderBlock (relative positioned) {DIV} at (0,0) size 320x240
+layer at (332,243) size 320x48
+  RenderFlexibleBox (positioned) {DIV} at (0,192) size 320x48
+    RenderButton {INPUT} at (0,0) size 48x48
+    RenderFlexibleBox {DIV} at (48,0) size 224x48
+      RenderSlider {INPUT} at (0,0) size 224x48
+        RenderBlock {DIV} at (0,8) size 32x32
+    RenderButton {INPUT} at (272,0) size 48x48

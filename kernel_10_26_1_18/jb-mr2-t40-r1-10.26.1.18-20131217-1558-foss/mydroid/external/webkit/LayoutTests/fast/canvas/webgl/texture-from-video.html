@@ -1,0 +1,330 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<style>
+    body {background-color:#420}
+    video {display:none}
+</style>
+<video id='redGreen' loop></video>
+<video id='gradient' loop></video>
+<canvas id='canvas' width='782' height='522'></canvas>
+<script>
+    if (window.layoutTestController)
+        layoutTestController.dumpAsText(true);
+    var readyCount = 0;
+    var doTest = function() {
+        if (++readyCount != 2)
+            return;
+
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+        // Row 1: test flip-Y.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_2D);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_2D);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, redGreen.videoWidth, redGreen.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_2D);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, redGreen.videoWidth, redGreen.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_2D);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 3*redGreen.videoWidth, 3*redGreen.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, redGreen.videoWidth/2, redGreen.videoHeight/2, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_2D);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 3*redGreen.videoWidth, 3*redGreen.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, redGreen.videoWidth/2, redGreen.videoHeight/2, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_2D);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+
+        // Row 2: test cube maps.
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, gradient);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, gradient);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, gradient);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, gradient);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, 17, 0, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, gradient);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, 17, 0, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        drawBlock(gl.TEXTURE_CUBE_MAP_POSITIVE_X);
+        drawBlock(gl.TEXTURE_CUBE_MAP_NEGATIVE_X);
+        drawBlock(gl.TEXTURE_CUBE_MAP_POSITIVE_Y);
+        drawBlock(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y);
+        drawBlock(gl.TEXTURE_CUBE_MAP_POSITIVE_Z);
+        drawBlock(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z);
+
+
+        // Row 3: test color formats.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, gradient);
+        drawBlock(gl.TEXTURE_2D);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_SHORT_5_6_5, gradient);
+        drawBlock(gl.TEXTURE_2D);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_SHORT_5_5_5_1, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_SHORT_5_5_5_1, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_SHORT_5_5_5_1, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_SHORT_5_5_5_1, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_SHORT_5_5_5_1, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_SHORT_5_5_5_1, null);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, 0, 0, gl.RGBA, gl.UNSIGNED_SHORT_5_5_5_1, gradient);
+        drawBlock(gl.TEXTURE_CUBE_MAP_POSITIVE_X);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gradient.videoWidth, gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, null);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, gradient);
+        drawBlock(gl.TEXTURE_2D);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.LUMINANCE, gradient.videoWidth, gradient.videoHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.LUMINANCE, gradient.videoWidth, gradient.videoHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.LUMINANCE, gradient.videoWidth, gradient.videoHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.LUMINANCE, gradient.videoWidth, gradient.videoHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.LUMINANCE, gradient.videoWidth, gradient.videoHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.LUMINANCE, gl.LUMINANCE, gl.UNSIGNED_BYTE, gradient);
+        drawBlock(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, gl.ALPHA, gl.UNSIGNED_BYTE, gradient);
+        drawBlock(gl.TEXTURE_2D);
+
+
+        // Row 4: test mipmap levels.
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 4*gradient.videoWidth, 4*gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texImage2D(gl.TEXTURE_2D, 2, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, gradient);
+        drawBlock(gl.TEXTURE_2D);
+
+        gl.texSubImage2D(gl.TEXTURE_2D, 2, 32, 0, gl.RGBA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_2D);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 4*gradient.videoWidth, 4*gradient.videoHeight, 0, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, null);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texImage2D(gl.TEXTURE_2D, 2, gl.RGBA, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, gradient);
+        drawBlock(gl.TEXTURE_2D);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGB, 8*gradient.videoWidth, 8*gradient.videoHeight, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGB, 8*gradient.videoWidth, 8*gradient.videoHeight, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGB, 8*gradient.videoWidth, 8*gradient.videoHeight, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGB, 8*gradient.videoWidth, 8*gradient.videoHeight, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGB, 8*gradient.videoWidth, 8*gradient.videoHeight, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGB, 8*gradient.videoWidth, 8*gradient.videoHeight, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 3, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, gradient);
+        drawBlock(gl.TEXTURE_CUBE_MAP_POSITIVE_Y);
+
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.LUMINANCE_ALPHA, 2*gradient.videoWidth, 2*gradient.videoHeight, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.LUMINANCE_ALPHA, 2*gradient.videoWidth, 2*gradient.videoHeight, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.LUMINANCE_ALPHA, 2*gradient.videoWidth, 2*gradient.videoHeight, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.LUMINANCE_ALPHA, 2*gradient.videoWidth, 2*gradient.videoHeight, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.LUMINANCE_ALPHA, 2*gradient.videoWidth, 2*gradient.videoHeight, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.LUMINANCE_ALPHA, 2*gradient.videoWidth, 2*gradient.videoHeight, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, null);
+        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 1, 21, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_CUBE_MAP_NEGATIVE_X);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 1, gl.LUMINANCE_ALPHA, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, gradient);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 1, 35, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, redGreen);
+        drawBlock(gl.TEXTURE_CUBE_MAP_POSITIVE_Z);
+    };
+
+    var redGreen = document.getElementById('redGreen');
+    redGreen.addEventListener('loadeddata', doTest);
+    redGreen.src = 'resources/red-green.mp4';
+
+    var gradient = document.getElementById('gradient');
+    gradient.addEventListener('loadeddata', doTest());
+    gradient.src = 'resources/gradient.webm';
+
+    var canvas = document.getElementById('canvas');
+    var gl = canvas.getContext('experimental-webgl', {});
+
+    var getShader = function(id) {
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript)
+            return null;
+
+        var str = '';
+        var k = shaderScript.firstChild;
+        while (k) {
+          if (k.nodeType == 3)
+            str += k.textContent;
+          k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == 'x-shader/x-fragment')
+          shader = gl.createShader(gl.FRAGMENT_SHADER);
+        else if (shaderScript.type == 'x-shader/x-vertex')
+          shader = gl.createShader(gl.VERTEX_SHADER);
+        else
+          return null;
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          alert(gl.getShaderInfoLog(shader));
+          return null;
+        }
+
+        return shader;
+    }
+</script>
+<script id='vertexShader2D' type='x-shader/x-vertex'>
+    uniform vec4 destRect;
+    attribute vec2 vertexPos;
+    varying vec2 texCoords;
+    void main(void)
+    {
+        texCoords = vertexPos;
+        gl_Position = vec4(destRect.xy + vertexPos * destRect.zw, 0, 1);
+    }
+</script>
+<script id='fragmentShader2D' type='x-shader/x-fragment'>
+    precision highp float;
+    uniform sampler2D texture;
+    varying vec2 texCoords;
+    void main(void)
+    {
+        gl_FragColor = texture2D(texture, texCoords);
+    }
+</script>
+<script id='vertexShaderCube' type='x-shader/x-vertex'>
+    uniform vec4 destRect;
+    uniform mat3 textureMatrix;
+    attribute vec2 vertexPos;
+    varying vec3 texCoords;
+    void main(void)
+    {
+        texCoords = textureMatrix * vec3(vertexPos, 1);
+        gl_Position = vec4(destRect.xy + vertexPos * destRect.zw, 0, 1);
+    }
+</script>
+<script id='fragmentShaderCube' type='x-shader/x-fragment'>
+    precision highp float;
+    uniform samplerCube texture;
+    varying vec3 texCoords;
+    void main(void)
+    {
+        gl_FragColor = textureCube(texture, texCoords);
+    }
+</script>
+<script>
+    var program2D = {id: gl.createProgram()};
+    gl.attachShader(program2D.id, getShader('vertexShader2D'));
+    gl.attachShader(program2D.id, getShader('fragmentShader2D'));
+    gl.linkProgram(program2D.id);
+    gl.useProgram(program2D.id);
+    program2D.destRect = gl.getUniformLocation(program2D.id, 'destRect');
+    program2D.vertexPos = gl.getAttribLocation(program2D.id, 'vertexPos');
+    gl.uniform1i(gl.getUniformLocation(program2D.id, 'texture'), 0);
+
+    var programCube = {id: gl.createProgram()};
+    gl.attachShader(programCube.id, getShader('vertexShaderCube'));
+    gl.attachShader(programCube.id, getShader('fragmentShaderCube'));
+    gl.linkProgram(programCube.id);
+    gl.useProgram(programCube.id);
+    programCube.destRect = gl.getUniformLocation(programCube.id, 'destRect');
+    programCube.textureMatrix = gl.getUniformLocation(programCube.id, 'textureMatrix');
+    programCube.vertexPos = gl.getAttribLocation(programCube.id, 'vertexPos');
+    gl.uniform1i(gl.getUniformLocation(programCube.id, 'texture'), 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0,0, 1,0, 1,1, 0,1]), gl.STATIC_DRAW);
+
+    var currentProgram = null;
+    var useProgram = function(program) {
+        if (currentProgram)
+            gl.disableVertexAttribArray(currentProgram.vertexPos);
+        gl.useProgram(program.id);
+        gl.enableVertexAttribArray(program.vertexPos);
+        gl.vertexAttribPointer(program.vertexPos, 2, gl.FLOAT, false, 0, 0);
+        currentProgram = program;
+    };
+
+    var blockX = 0;
+    var blockY = 0;
+    var drawBlock = function(target) {
+        if (target == gl.TEXTURE_2D)
+            useProgram(program2D);
+        else {
+            useProgram(programCube);
+            var matrix;
+            switch (target) {
+            case gl.TEXTURE_CUBE_MAP_POSITIVE_X: matrix = [0,0,1, 0,-2,1, -2,0,1]; break;
+            case gl.TEXTURE_CUBE_MAP_NEGATIVE_X: matrix = [0,0,-1, 0,-2,1, 2,0,-1]; break;
+            case gl.TEXTURE_CUBE_MAP_POSITIVE_Y: matrix = [2,0,-1, 0,0,1, 0,2,-1]; break;
+            case gl.TEXTURE_CUBE_MAP_NEGATIVE_Y: matrix = [2,0,-1, 0,0,-1, 0,-2,1]; break;
+            case gl.TEXTURE_CUBE_MAP_POSITIVE_Z: matrix = [2,0,-1, 0,-2,1, 0,0,1]; break;
+            case gl.TEXTURE_CUBE_MAP_NEGATIVE_Z: matrix = [-2,0,1, 0,-2,1, 0,0,-1]; break;
+            }
+            var transposedMatrix = new Float32Array(3 * 3);
+            for (var y = 0; y < 3; y++) {
+                for (var x = 0; x < 3; x++)
+                    transposedMatrix[3 * x + y] = matrix[x + 3 * y];
+            }
+            gl.uniformMatrix3fv(programCube.textureMatrix, false, transposedMatrix);
+        }
+
+        gl.uniform4f(currentProgram.destRect,
+                     2 * (2 + (128 + 2) * blockX) / 782 - 1,
+                     -2 * (2 + (128 + 2) * blockY) / 522 + 1,
+                     2 * 128 / 782, -2 * 128 / 522);
+
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+        blockX++;
+        if (blockX >= 6) {
+            blockX = 0;
+            blockY++;
+        }
+    };
+
+    gl.clearColor(.96, .87, .6, 1);
+
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, gl.createTexture());
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+</script>

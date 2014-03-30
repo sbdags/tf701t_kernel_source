@@ -1,0 +1,91 @@
+Verify npot video
+
+On success, you will see a series of "PASS" messages, followed by "TEST COMPLETE".
+
+Testing texImage2D with flipY=true
+size: 304x176
+use texImage2D
+bad min filter
+bad clamp
+generate mips
+PASS getError was expected value: INVALID_OPERATION : should be INVALID_OPERATION
+Checking lower left corner
+PASS shouldBe 0,0,0
+Checking upper left corner
+PASS shouldBe 0,0,0
+
+Testing texImage2D with flipY=true
+size: 304x176
+use texImage2D
+bad min filter
+good clamp
+Checking lower left corner
+PASS shouldBe 0,0,0
+Checking upper left corner
+PASS shouldBe 0,0,0
+
+Testing texImage2D with flipY=true
+size: 304x176
+use texImage2D
+good min filter
+bad clamp
+Checking lower left corner
+PASS shouldBe 0,0,0
+Checking upper left corner
+PASS shouldBe 0,0,0
+
+Testing texImage2D with flipY=true
+size: 304x176
+use texImage2D
+bad min filter
+bad clamp
+Checking lower left corner
+PASS shouldBe 0,0,0
+Checking upper left corner
+PASS shouldBe 0,0,0
+
+Testing texImage2D with flipY=true
+size: 304x176
+use texImage2D
+good min filter
+good clamp
+Checking lower left corner
+PASS shouldBe 255,0,0
+Checking upper left corner
+PASS shouldBe 0,255,0
+
+Testing texImage2D with flipY=false
+size: 304x176
+use texImage2D
+good min filter
+good clamp
+Checking lower left corner
+PASS shouldBe 0,255,0
+Checking upper left corner
+PASS shouldBe 255,0,0
+
+Testing texSubImage2D with flipY=true
+size: 304x176
+use texSubImage2D
+good min filter
+good clamp
+Checking lower left corner
+PASS shouldBe 255,0,0
+Checking upper left corner
+PASS shouldBe 0,255,0
+
+Testing texSubImage2D with flipY=false
+size: 304x176
+use texSubImage2D
+good min filter
+good clamp
+Checking lower left corner
+PASS shouldBe 0,255,0
+Checking upper left corner
+PASS shouldBe 255,0,0
+
+PASS getError was expected value: NO_ERROR : should be no errors
+PASS successfullyParsed is true
+
+TEST COMPLETE
+

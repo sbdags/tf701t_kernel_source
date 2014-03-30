@@ -1,0 +1,32 @@
+<html>
+<head>
+<style type="text/css">
+</style>
+<script type="text/javascript">
+function init() {
+    for (var transparency = 0; transparency < 2; transparency++) {
+    for (var rounding = 0; rounding < 3; rounding++) {
+    for (var offset = 0; offset < 2; offset++) {
+    for (var spread = 0; spread < 2; spread++) {
+    for (var blur = 0; blur < 3; blur++) {
+        var d = document.createElement("div");
+        color = "rgb(0, 0, 128)";
+        if (transparency == 1)
+            color = "rgba(0, 0, 128, 0.4)"
+        d.style.boxShadow = "inset " + (offset * 15) + "px " + (offset * 8) + "px " + (blur * blur * 10) + " px " + (spread * 10) + "px " + color;
+        d.style.width = "50px";
+        d.style.height = "50px";
+        d.style.display = "inline-block";
+        d.style.margin = "3px";
+        d.style.borderRadius = rounding * rounding * 5 + "px";
+        d.style.backgroundColor = "lightgreen";
+        document.body.appendChild(d);
+    } } }
+    document.body.appendChild(document.createElement("br"));
+    } }
+}
+</script>
+</head>
+<body onload="init()">
+</body>
+</html>
