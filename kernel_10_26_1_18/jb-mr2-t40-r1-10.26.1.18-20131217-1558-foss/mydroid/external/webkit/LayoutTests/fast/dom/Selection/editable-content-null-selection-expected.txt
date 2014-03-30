@@ -1,2 +1,0 @@
-This test validates ASSERT failure with onclick event on a content editable div with no selection. If the test executes without a crash, it is considered a PASS.
-Editable content Div Element

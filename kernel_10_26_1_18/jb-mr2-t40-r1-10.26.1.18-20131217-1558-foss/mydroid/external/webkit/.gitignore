@@ -1,4 +1,0 @@
-WebKitBuild/*
-WebCore/WebCore.xcodeproj/*
-Tools/Scripts/webkitpy/thirdparty/autoinstalled/*
-*.pyc

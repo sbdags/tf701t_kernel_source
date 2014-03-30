@@ -1,3 +1,0 @@
-debian/tmp/usr/bin/wmgui
-debian/menus/wmgui.desktop usr/share/applications
-debian/icons/* usr/share/pixmaps

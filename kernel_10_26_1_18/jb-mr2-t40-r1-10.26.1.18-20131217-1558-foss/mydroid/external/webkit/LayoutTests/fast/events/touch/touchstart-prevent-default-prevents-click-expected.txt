@@ -1,7 +1,0 @@
-CONSOLE MESSAGE: line 22: touchstart
-PASS touchStartCount is 1
-PASS clickCount is 0
-PASS successfullyParsed is true
-
-TEST COMPLETE
-
