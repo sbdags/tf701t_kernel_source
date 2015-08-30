@@ -24,6 +24,8 @@
 #include <linux/uaccess.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
+#include <linux/mutex.h>
+#include <linux/nvhost.h>
 #include <asm/atomic.h>
 
 #include <mach/dc.h>
@@ -484,6 +486,7 @@ static int get_nvhdcp_state(struct tegra_nvhdcp *nvhdcp,
 		for (i = 0; i < pkt->num_bksv_list; i++)
 			pkt->bksv_list[i] = nvhdcp->bksv_list[i];
 		pkt->b_status = nvhdcp->b_status;
+		pkt->b_ksv = nvhdcp->b_ksv;
 		memcpy(pkt->v_prime, nvhdcp->v_prime, sizeof(nvhdcp->v_prime));
 		pkt->packet_results = TEGRA_NVHDCP_RESULT_SUCCESS;
 	}
@@ -672,7 +675,9 @@ static int load_kfuse(struct tegra_dc_hdmi_data *hdmi)
 	int retries;
 
 	/* copy load kfuse into buffer - only needed for early Tegra parts */
+	mutex_lock(&kfuse_mutex);
 	e = tegra_kfuse_read(buf, sizeof buf);
+	mutex_unlock(&kfuse_mutex);
 	if (e) {
 		nvhdcp_err("Kfuse read failure\n");
 		return e;
@@ -860,6 +865,8 @@ static void nvhdcp_downstream_worker(struct work_struct *work)
 	tegra_dc_io_start(dc);
 
 	mutex_lock(&nvhdcp->lock);
+	nvhdcp->num_bksv_list = 0;
+	memset(nvhdcp->bksv_list, 0x0, TEGRA_NVHDCP_MAX_DEVS * sizeof(u64));
 	if (nvhdcp->state == STATE_OFF) {
 		nvhdcp_err("nvhdcp failure - giving up\n");
 		goto err;
@@ -1074,7 +1081,7 @@ static int tegra_nvhdcp_off(struct tegra_nvhdcp *nvhdcp)
 	nvhdcp_set_plugged(nvhdcp, false);
 	mutex_unlock(&nvhdcp->lock);
 	wake_up_interruptible(&wq_worker);
-	flush_workqueue(nvhdcp->downstream_wq);
+	cancel_delayed_work_sync(&nvhdcp->work);
 	return 0;
 }
 

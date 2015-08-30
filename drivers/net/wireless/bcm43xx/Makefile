@@ -1,4 +1,4 @@
-# bcmdhd
+# bcm43xx
 DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER                     \
 	-DDHD_FIRSTREAD=128 -DMAX_HDR_READ=128                                \
 	-DPROP_TXSTATUS_VSDB -DDHDTCPACK_SUPPRESS                             \
@@ -12,10 +12,10 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER                     \
 	-DEMBEDDED_PLATFORM -DENABLE_INSMOD_NO_FW_LOAD -DPNO_SUPPORT          \
 	-DDHD_USE_IDLECOUNT -DROAM_ENABLE -DVSDB                              \
 	-DWL_CFG80211_VSDB_PRIORITIZE_SCAN_REQUEST                            \
-	-DESCAN_RESULT_PATCH -DSDIO_CRC_ERROR_FIX                             \
+	-DESCAN_RESULT_PATCH -DSDIO_CRC_ERROR_FIX -DBLACKLIST_PKT_FILTER      \
 	-DDHD_DONOT_FORWARD_BCMEVENT_AS_NETWORK_PKT                           \
 	-DCUSTOM_SDIO_F2_BLKSIZE=128 -DWL_SDO -DWLTDLS                        \
-	-DWL_SUPPORT_BACKPORTED_KPATCHES -DBW_40ALL -DDYNAMIC_DTIM_SKIP       \
+	-DWL_SUPPORT_BACKPORTED_KPATCHES -DDYNAMIC_DTIM_SKIP \
 	-Idrivers/net/wireless/bcm43xx -Idrivers/net/wireless/bcm43xx/include
 
 DHDOFILES = aiutils.o bcmsdh_sdmmc_linux.o dhd_linux.o siutils.o bcmutils.o   \
@@ -41,7 +41,8 @@ DHDCFLAGS += -DSOFTAP -DWL_WIRELESS_EXT -DUSE_IW
 endif
 ifneq ($(CONFIG_CFG80211),)
 bcmdhd-objs += wl_cfg80211.o wl_cfgp2p.o wl_linux_mon.o dhd_cfg80211.o
-DHDCFLAGS += -DWL_CFG80211 -DWL_CFG80211_STA_EVENT -DWL_ENABLE_P2P_IF
+DHDCFLAGS += -DWL_CFG80211 -DWL_CFG80211_STA_EVENT
+DHDCFLAGS += -DWL_ENABLE_P2P_IF -DWL_IFACE_COMB_NUM_CHANNELS
 endif
 
 DHDCFLAGS += -DCUSTOM_ROAM_TRIGGER_SETTING=-85
@@ -56,6 +57,14 @@ DHDCFLAGS += -DCUSTOM_DPC_PRIO_SETTING=99
 ifneq ($(CONFIG_DHD_USE_SCHED_SCAN),)
 DHDCFLAGS += -DWL_SCHED_SCAN
 endif
+
+ifneq ($(CONFIG_BCM4334X),)
+DHDCFLAGS += -DBCM4334X_MCC_ENABLE # Enable MCC
+DHDCFLAGS += -DMIRACAST_MCHAN_ALGO=0
+DHDCFLAGS += -DMIRACAST_AMPDU_BA_WSIZE=16
+DHDCFLAGS += -DMIRACAST_MCHAN_BW=40
+endif
+
 ccflags-y = -I$(src)
 ccflags-y += -I$(src)/include
 

@@ -68,7 +68,6 @@ static dev_t aw8ec_dev ;
 static int aw8ec_major = 0 ;
 static int aw8ec_minor = 0 ;
 static int w8_lock_state = 0;
-
 static struct workqueue_struct *aw8ec_wq;
 
 static const struct i2c_device_id aw8ec_id[] = {
@@ -121,7 +120,7 @@ static irqreturn_t aw8ec_interrupt_handler(int irq, void *dev_id){
 	} else if (irq == gpio_to_irq(aw8ec_w8_gpio)){
 		queue_delayed_work(aw8ec_wq, &ec_chip->aw8ec_w8_work, 0);
 	}else if (irq == gpio_to_irq(aw8ec_scalar_status_gpio)){
-+		queue_delayed_work(aw8ec_wq, &ec_chip->aw8ec_scalar_status_work, 0);
+		queue_delayed_work(aw8ec_wq, &ec_chip->aw8ec_scalar_status_work, 0);
 }
 	return IRQ_HANDLED;
 }

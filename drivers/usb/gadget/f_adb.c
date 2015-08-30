@@ -116,7 +116,7 @@ static void adb_closed_callback(void);
 
 static struct usb_string adb_string_defs[] = {
 	[0].s = "ASUS Android Composite ADB Interface",
-	{  },	 /*end of list*/
+	{  }, /*end of list*/
 };
 
 static struct usb_gadget_strings adb_string_table = {

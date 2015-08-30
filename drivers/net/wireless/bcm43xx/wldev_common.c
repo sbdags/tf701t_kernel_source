@@ -23,7 +23,7 @@
 
 #define	WLDEV_ERROR(args)						\
 	do {										\
-		printf(KERN_ERR "WLDEV-ERROR) %s : ", __func__);	\
+		printk(KERN_ERR "WLDEV-ERROR) %s : ", __func__);	\
 		printk args;							\
 	} while (0)
 

@@ -514,6 +514,7 @@
 #define USE_PLLE_INPUT_PLLRE	0
 
 extern bool display_on_flag;
+u8 mouse_dock_enable_flag = 0;
 
 static bool tegra11_is_dyn_ramp(struct clk *c,
 				unsigned long rate, bool from_vco_min);
@@ -2653,7 +2654,7 @@ static void tegra11_pllcx_clk_resume_enable(struct clk *c)
 	c->state = OFF;
 	pllcx_set_defaults(c, rate, c->mul);
 
-	rate = clk_get_rate_all_locked(c) + 1;
+	rate = clk_get_rate_all_locked(c);
 	tegra11_pllcx_clk_set_rate(c, rate);
 	tegra11_pllcx_clk_enable(c);
 	c->state = state;
@@ -2946,7 +2947,7 @@ static void tegra11_pllxc_clk_resume_enable(struct clk *c)
 	else
 		pllc_set_defaults(c, rate);
 
-	rate = clk_get_rate_all_locked(c) + 1;
+	rate = clk_get_rate_all_locked(c);
 	tegra11_pllxc_clk_set_rate(c, rate);
 	tegra11_pllxc_clk_enable(c);
 	c->state = state;
@@ -3348,7 +3349,7 @@ static void tegra11_pllre_clk_resume_enable(struct clk *c)
 	pllre_set_defaults(c->parent, rate);
 
 	/* restore PLLRE VCO feedback loop (m, n) */
-	rate = clk_get_rate_all_locked(c->parent) + 1;
+	rate = clk_get_rate_all_locked(c->parent);
 	tegra11_pllre_clk_set_rate(c->parent, rate);
 
 	/* restore PLLRE post-divider */
@@ -4890,7 +4891,10 @@ static long tegra11_clk_cbus_round_updown(struct clk *c, unsigned long rate,
 			c->dvfs->freqs[n-2] + CBUS_FINE_GRANULARITY_RANGE);
 		threshold -= CBUS_FINE_GRANULARITY_RANGE;
 
-		if (rate <= threshold)
+		if (rate == threshold)
+			return threshold;
+
+		if (rate < threshold)
 			return up ? threshold : c->dvfs->freqs[n-2];
 
 		rate = (up ? DIV_ROUND_UP(rate, CBUS_FINE_GRANULARITY) :
@@ -7629,19 +7633,38 @@ unsigned long tegra_emc_to_cpu_ratio(unsigned long cpu_rate)
 	}
 	else
 	{
-		//set emc at lease 200MHz when display on
-		if (cpu_rate >= 1500000)
-			return emc_max_rate;	/* cpu >= 1.5GHz, emc max */
-		else if (cpu_rate >= 975000)
-			return 400000000;	/* cpu >= 975 MHz, emc 400 MHz */
-		else if (cpu_rate >= 725000)
-			return  200000000;	/* cpu >= 725 MHz, emc 200 MHz */
-		else if (cpu_rate >= 500000)
-			return  200000000;	/* cpu >= 500 MHz, emc 200 MHz */
-		else if (cpu_rate >= 275000)
-			return  200000000;	/* cpu >= 275 MHz, emc 200 MHz */
+		if(!mouse_dock_enable_flag)
+		{
+			//set emc at lease 200MHz when display on
+			if (cpu_rate >= 1500000)
+				return emc_max_rate;	/* cpu >= 1.5GHz, emc max */
+			else if (cpu_rate >= 975000)
+				return 400000000;	/* cpu >= 975 MHz, emc 400 MHz */
+			else if (cpu_rate >= 725000)
+				return  200000000;	/* cpu >= 725 MHz, emc 200 MHz */
+			else if (cpu_rate >= 500000)
+				return  200000000;	/* cpu >= 500 MHz, emc 200 MHz */
+			else if (cpu_rate >= 275000)
+				return  200000000;	/* cpu >= 275 MHz, emc 200 MHz */
+			else
+				return 200000000;		/* emc min */
+		}
 		else
-			return 200000000;		/* emc min */
+		{
+			//set emc at lease 200MHz when display on
+			if (cpu_rate >= 1500000)
+				return emc_max_rate;	/* cpu >= 1.5GHz, emc max */
+			else if (cpu_rate >= 975000)
+				return 400000000;	/* cpu >= 975 MHz, emc 400 MHz */
+			else if (cpu_rate >= 725000)
+				return  300000000;	/* cpu >= 725 MHz, emc 300 MHz */
+			else if (cpu_rate >= 500000)
+				return  300000000;	/* cpu >= 500 MHz, emc 300 MHz */
+			else if (cpu_rate >= 275000)
+				return  300000000;	/* cpu >= 275 MHz, emc 300 MHz */
+			else
+				return 300000000;		/* emc min */
+		}
 	}
 }
 

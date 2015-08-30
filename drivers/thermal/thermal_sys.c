@@ -351,6 +351,13 @@ static void monitor_thermal_zone(struct thermal_zone_device *tz)
 static void handle_non_critical_trips(struct thermal_zone_device *tz,
 			int trip, enum thermal_trip_type trip_type)
 {
+	if(tz->governor == NULL)
+	{
+		printk("%s : pid_governor already unregistered.\n", __func__);
+		WARN_ON(1);
+		return;
+	}
+
 	tz->governor->throttle(tz, trip);
 }
 

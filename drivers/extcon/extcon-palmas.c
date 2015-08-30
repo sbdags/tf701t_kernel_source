@@ -79,6 +79,7 @@ static int palmas_extcon_vbus_cable_update(
 		extcon_set_cable_state(palma_econ->edev, "USB", false);
 		pmu_vbus_status = 0;
 	}
+
 	dev_info(palma_econ->dev, "VBUS %s status: 0x%02x\n",
 		(status & PALMAS_INT3_LINE_STATE_VBUS) ? "Valid" : "Invalid",
 		status);

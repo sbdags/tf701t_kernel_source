@@ -213,7 +213,11 @@ softap_iface_combinations[] = {
 static const struct ieee80211_iface_combination
 sta_p2p_iface_combinations[] = {
 	{
+#ifdef BCM4334X_MCC_ENABLE
 	.num_different_channels = 2,
+#else
+	.num_different_channels = 1,
+#endif /* BCM4334X_MCC_ENABLE */
 	.max_interfaces = 3,
 	.limits = sta_p2p_limits,
 	.n_limits = ARRAY_SIZE(sta_p2p_limits),
@@ -2049,12 +2053,12 @@ wl_run_escan(struct wl_priv *wl, struct net_device *ndev,
 	u16 *default_chan_list = NULL;
 	wl_uint32_list_t *list;
 	struct net_device *dev = NULL;
-#if defined(USE_INITIAL_SHORT_DWELL_TIME)
-	bool is_first_init_2g_scan = false;
-#endif 
 	u32 chan = 0;
 	u32 chanspec = 0;
 	struct net_info *iter, *next;
+#if defined(USE_INITIAL_SHORT_DWELL_TIME)
+	bool is_first_init_2g_scan = false;
+#endif 
 	p2p_scan_purpose_t	p2p_scan_purpose = P2P_SCAN_PURPOSE_MIN;
 
 	WL_DBG(("Enter \n"));
@@ -2167,6 +2171,7 @@ wl_run_escan(struct wl_priv *wl, struct net_device *ndev,
 						!IS_P2P_SOCIAL_CHANNEL(channel))
 							continue;
 #endif /* WL_HOST_BAND_MGMT */
+
 					if ((chan == channel) &&
 						(request->channels[i]->flags &
 						(IEEE80211_CHAN_RADAR
@@ -2627,7 +2632,7 @@ wl_cfg80211_scan(struct wiphy *wiphy, struct net_device *ndev,
 	s32 err = 0;
 	struct wl_priv *wl = wiphy_priv(wiphy);
 #if defined(WL_CFG80211_P2P_DEV_IF)
-	struct net_device *ndev = wl_to_prmry_ndev(wl);
+	struct net_device *ndev = wdev_to_wlc_ndev(request->wdev, wl);
 #endif /* WL_CFG80211_P2P_DEV_IF */
 
 	WL_DBG(("Enter \n"));
@@ -4673,7 +4678,7 @@ wl_update_pmklist(struct net_device *dev, struct wl_pmk_list *pmk_list,
 	struct net_device *primary_dev = wl_to_prmry_ndev(wl);
 
 	if (!pmk_list) {
-		printf("pmk_list is NULL\n");
+		printk("pmk_list is NULL\n");
 		return -EINVAL;
 	}
 	/* pmk list is supported only for STA interface i.e. primary interface
@@ -7711,9 +7716,8 @@ wl_notify_connect_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 		if (wl_is_linkup(wl, e, ndev)) {
 			wl_link_up(wl);
 			act = true;
-
 			if (!wl_get_drv_status(wl, DISCONNECTING, ndev)) {
-					printf("wl_bss_connect_done succeeded with " MACDBG "\n",
+					printk("wl_bss_connect_done succeeded with " MACDBG "\n",
 						MAC2STRDBG((u8*)(&e->addr)));
 					wl_bss_connect_done(wl, ndev, e, data, true);
 					WL_DBG(("joined in BSS network \"%s\"\n",
@@ -7741,7 +7745,7 @@ wl_notify_connect_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 				/* WLAN_REASON_UNSPECIFIED is used for hang up event in Android */
 				reason = (reason == WLAN_REASON_UNSPECIFIED)? 0 : reason;
 
-				printf("link down if %s may call cfg80211_disconnected. "
+				printk("link down if %s may call cfg80211_disconnected. "
 					"event : %d, reason=%d from " MACDBG "\n",
 					ndev->name, event, ntoh32(e->reason),
 					MAC2STRDBG((u8*)(&e->addr)));
@@ -7772,7 +7776,8 @@ wl_notify_connect_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 				}
 			}
 			else if (wl_get_drv_status(wl, CONNECTING, ndev)) {
-				printf("link down, during connecting\n");
+
+				printk("link down, during connecting\n");
 #ifdef ESCAN_RESULT_PATCH
 				if ((memcmp(connect_req_bssid, broad_bssid, ETHER_ADDR_LEN) == 0) ||
 					(memcmp(&e->addr, broad_bssid, ETHER_ADDR_LEN) == 0) ||
@@ -7788,7 +7793,7 @@ wl_notify_connect_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 				complete(&wl->iface_disable);
 
 		} else if (wl_is_nonetwork(wl, e)) {
-			printf("connect failed event=%d e->status %d e->reason %d \n",
+			printk("connect failed event=%d e->status %d e->reason %d \n",
 				event, (int)ntoh32(e->status), (int)ntoh32(e->reason));
 			/* Clean up any pending scan request */
 			if (wl->scan_request) {
@@ -7802,7 +7807,7 @@ wl_notify_connect_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 			if (wl_get_drv_status(wl, CONNECTING, ndev))
 				wl_bss_connect_done(wl, ndev, e, data, false);
 		} else {
-			printf("%s nothing\n", __FUNCTION__);
+			printk("%s nothing\n", __FUNCTION__);
 		}
 	} else {
 		WL_ERR(("Invalid ndev status %d\n", wl_get_mode_by_netdev(wl, ndev)));
@@ -8075,7 +8080,7 @@ done:
 	kfree(buf);
 #endif /* LINUX_VERSION > 2.6.39  || WL_COMPAT_WIRELESS */
 
-	printf("wl_bss_roaming_done succeeded to " MACDBG "\n",
+	printk("wl_bss_roaming_done succeeded to " MACDBG "\n",
 		MAC2STRDBG((u8*)(&e->addr)));
 
 	cfg80211_roamed(ndev,

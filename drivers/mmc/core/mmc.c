@@ -278,6 +278,7 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	int err = 0, idx;
 	unsigned int part_size;
 	u8 hc_erase_grp_sz = 0, hc_wp_grp_sz = 0;
+	unsigned int size = 0;
 
 	BUG_ON(!card);
 
@@ -297,7 +298,7 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	}
 
 	card->ext_csd.rev = ext_csd[EXT_CSD_REV];
-	if (card->ext_csd.rev > 6) {
+	if (card->ext_csd.rev > 7) {
 		pr_err("%s: unrecognised EXT_CSD revision %d\n",
 			mmc_hostname(card->host), card->ext_csd.rev);
 		err = -EINVAL;
@@ -318,6 +319,13 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		/* Cards with density > 2GiB are sector addressed */
 		if (card->ext_csd.sectors > (2u * 1024 * 1024 * 1024) / 512)
 			mmc_card_set_blockaddr(card);
+	}
+
+	size = card->ext_csd.sectors >> 20;
+	card->mmc_total_size = 1;
+	while (size > 0 && (size >> 1) > 0) {
+		size = size >> 1;
+		card->mmc_total_size = card->mmc_total_size * 2;
 	}
 
 	card->ext_csd.raw_card_type = ext_csd[EXT_CSD_CARD_TYPE];
@@ -642,6 +650,7 @@ MMC_DEV_ATTR(serial, "0x%08x\n", card->cid.serial);
 MMC_DEV_ATTR(enhanced_area_offset, "%llu\n",
 		card->ext_csd.enhanced_area_offset);
 MMC_DEV_ATTR(enhanced_area_size, "%u\n", card->ext_csd.enhanced_area_size);
+MMC_DEV_ATTR(emmc_total_size, "%d\n", card->mmc_total_size);
 
 static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_cid.attr,
@@ -659,6 +668,7 @@ static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_serial.attr,
 	&dev_attr_enhanced_area_offset.attr,
 	&dev_attr_enhanced_area_size.attr,
+	&dev_attr_emmc_total_size.attr,
 	NULL,
 };
 

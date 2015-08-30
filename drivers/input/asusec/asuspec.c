@@ -101,6 +101,7 @@ static int asuspec_release(struct inode *inode, struct file *flip);
 static long asuspec_ioctl(struct file *flip, unsigned int cmd, unsigned long arg);
 static void asuspec_switch_apower_state(int state);
 static void asuspec_enter_factory_mode(void);
+static void asusdec_enter_factory_mode(void);
 static void asuspec_enter_normal_mode(void);
 static ssize_t ec_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos);
 static ssize_t ec_read(struct file *file, char __user *buf, size_t count, loff_t *ppos);
@@ -122,6 +123,9 @@ static bool asuspec_check_dock_in_control_flag(void);
 * extern variable
 */
 extern unsigned int factory_mode;
+#if EMC_NOTIFY
+extern u8 mouse_dock_enable_flag;
+#endif
 #if BATTERY_DRIVER
 extern int for_asuspec_call_me_back_if_dock_in_status_change(bool);
 #endif
@@ -391,9 +395,11 @@ int asuspec_battery_monitor(char *cmd,bool pad){
 		return -1;
 	}
 	else {
+#if FACTORY_MODE
 		if((factory_mode != 2) && (ec_chip->audio_recording == 0)){
 			mod_timer(&ec_chip->asuspec_timer,jiffies+(HZ * 1));
 		}
+#endif
 		if(pad){
 			if (!strcmp(cmd, "status"))
 				ret_val = (ec_chip->i2c_dm_battery[2] << 8 ) | ec_chip->i2c_dm_battery[1];
@@ -1448,9 +1454,11 @@ static int asuspec_chip_init(struct i2c_client *client)
 	strcpy(ec_chip->ec_pcba, &ec_chip->i2c_dm_data[1]);
 	ASUSPEC_NOTICE("PCBA Version: %s\n", ec_chip->ec_pcba);
 
+#if FACTORY_MODE
 	if(factory_mode == 2)
 		asuspec_enter_factory_mode();
 	else
+#endif
 		asuspec_enter_normal_mode();
 
 	ec_chip->status = 1;
@@ -1781,6 +1789,13 @@ static int asusdec_tp_control(int arg){
 		return -1;
 	}
 	ASUSPEC_NOTICE("asusdec_tp_control : %d\n",arg);
+
+#if EMC_NOTIFY
+	if(arg == 1)
+		mouse_dock_enable_flag = mouse_dock_enable_flag | 0x1;
+	else
+		mouse_dock_enable_flag = mouse_dock_enable_flag & 0xE;
+#endif
 
 	if(arg == ASUSDEC_TP_ON){
 		if (ec_chip->tp_enable == 0 ){
@@ -2588,6 +2603,12 @@ static void asusdec_tp_enable_work_function(struct work_struct *dat)
 	ec_chip->i2c_tp_data[5] = 0xf4;
 	i2c_smbus_write_i2c_block_data(&tp_client, 0x25, 6, ec_chip->i2c_tp_data);
 	ASUSPEC_INFO("tp gpio value %x\n",gpio_get_value(asuspec_ps2_int_gpio));
+#if EMC_NOTIFY
+	if(touchpad_enable_flag == 1)
+		mouse_dock_enable_flag = mouse_dock_enable_flag | 0x1;
+	else
+		mouse_dock_enable_flag = mouse_dock_enable_flag & 0xE;
+#endif
 	ASUSPEC_NOTICE("finish tp enable work function: %d \n",touchpad_enable_flag);
 
 }
@@ -2630,8 +2651,15 @@ void asuspec_tp_enable(u8 cmd)
 	msleep(60);
 	elantech_i2c_command(&tp_client, ETP_HID_READ_DATA_CMD, ec_chip->i2c_tp_data, 10);
 	if(cmd == 0xf4){
+#if EMC_NOTIFY
+		mouse_dock_enable_flag = mouse_dock_enable_flag | 0x1;
+#endif
 		ASUSPEC_NOTICE("tp enable\n");
 	}else if(cmd == 0xf5){
+#if EMC_NOTIFY
+		mouse_dock_enable_flag = mouse_dock_enable_flag & 0xE;
+#endif
+		ASUSPEC_NOTICE("tp disable\n");
 	}else
 		ASUSPEC_ERR("wrong tp cmd\n");
 	tp_in_ioctl = 0;
@@ -2757,6 +2785,9 @@ static void asusdec_dock_init_work_function(struct work_struct *dat)
 		last_dock_in_stat = 0;
 		finish_first_dock_init = 1;
 		touchpad_enable_flag = ASUSDEC_TP_ON;
+#if EMC_NOTIFY
+		mouse_dock_enable_flag = mouse_dock_enable_flag & 0xE;
+#endif
 		cancel_delayed_work(&ec_chip->asusdec_tp_enable_work);
 		return;
 	}else {

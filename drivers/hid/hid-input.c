@@ -314,7 +314,7 @@ static int hidinput_get_battery_property(struct power_supply *psy,
 {
 	struct hid_device *dev = container_of(psy, struct hid_device, battery);
 	int ret = 0;
-	__u8 buf[2] = {};
+	__u8 *buf;
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_PRESENT:
@@ -323,13 +323,20 @@ static int hidinput_get_battery_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CAPACITY:
+
+		buf = kmalloc(2 * sizeof(__u8), GFP_KERNEL);
+		if (!buf) {
+			ret = -ENOMEM;
+			break;
+		}
 		ret = dev->hid_get_raw_report(dev, dev->battery_report_id,
-					      buf, sizeof(buf),
+					      buf, 2,
 					      dev->battery_report_type);
 
 		if (ret != 2) {
 			if (ret >= 0)
 				ret = -EINVAL;
+			kfree(buf);
 			break;
 		}
 
@@ -338,6 +345,7 @@ static int hidinput_get_battery_property(struct power_supply *psy,
 		    buf[1] <= dev->battery_max)
 			val->intval = (100 * (buf[1] - dev->battery_min)) /
 				(dev->battery_max - dev->battery_min);
+		kfree(buf);
 		break;
 
 	case POWER_SUPPLY_PROP_MODEL_NAME:
@@ -829,7 +837,7 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 		case 0x0f1: map_key_clear(KEY_WLAN);	break;
 		case 0x0f2: map_key_clear(KEY_BRIGHTNESSDOWN);	break;
 		case 0x0f3: map_key_clear(KEY_BRIGHTNESSUP);	break;
-		case 0x0fc: map_key_clear(KEY_HOMEPAGE);	break;
+		case 0x0fc: map_key_clear(KEY_MODE);	break;
 		default: goto ignore;
 		}
 		break;

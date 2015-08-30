@@ -246,12 +246,13 @@ fail:
 static int macallan_dsi_regulator_get(struct device *dev)
 {
 	int err = 0;
+
 	if (reg_requested)
 		return 0;
 
 	dvdd_lcd_3v3 = regulator_get(dev, "dvdd_lcd");
 	if (IS_ERR_OR_NULL(dvdd_lcd_3v3)) {
-		pr_err("dvdd_lcd_3v3 regulator get failed\n");
+		pr_err("dvdd_lcd regulator get failed\n");
 		err = PTR_ERR(dvdd_lcd_3v3);
 		dvdd_lcd_3v3 = NULL;
 		goto fail;
@@ -299,6 +300,7 @@ fail:
 static int dsi_s_wqxga_10_1_postpoweron(struct device *dev)
 {
 	int err = 0;
+
 	if (machine_is_dalmore())
 		err = dalmore_dsi_regulator_get(dev);
 	else if (machine_is_macallan() || machine_is_mozart() || machine_is_haydn())
@@ -368,6 +370,7 @@ static int dsi_s_wqxga_10_1_postpoweron(struct device *dev)
 	gpio_set_value(DSI_PANEL_RST_GPIO, 1);
 	msleep(20);
 #endif
+
 	return 0;
 fail:
 	return err;
@@ -389,6 +392,8 @@ static int dsi_s_wqxga_10_1_disable(void)
 	if (vdd_ds_1v8)
 		regulator_disable(vdd_ds_1v8);
 
+	/* Make sure we have at least 1 second delay before turning on panel next time */
+	usleep_range(1000000, 1000010);
 	return 0;
 }
 

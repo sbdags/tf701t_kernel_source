@@ -934,7 +934,7 @@ static __devinit int tegra_rt5639_driver_probe(struct platform_device *pdev)
 	}
 #endif
 
-	if (machine_is_haydn()) {
+	if (0) { //machine_is_haydn()
 		if (gpio_is_valid(pdata->gpio_codec2)) {
 			ret = gpio_request(pdata->gpio_codec2, "rt5639");
 			if (ret)

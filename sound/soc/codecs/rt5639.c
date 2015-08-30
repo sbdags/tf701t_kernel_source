@@ -46,6 +46,7 @@
 #define USE_ONEBIT_DEPOP 1 /* for one bit depop */
 #define USE_EQ
 #define USE_HEADSET_DEPOP
+#define USE_RECORD_DEPOP
 #define VERSION "0.8.5 alsa 1.0.24"
 
 static int audio_codec_status = 0;
@@ -72,6 +73,11 @@ static bool headset_depop = false;
 static void rt5639_headset_depop_work(struct work_struct *work);
 static struct workqueue_struct *g_rt5639_headset_depop_work_queue = NULL;
 static DECLARE_WORK(g_rt5639_headset_depop_work, rt5639_headset_depop_work);
+#endif
+#ifdef USE_RECORD_DEPOP
+static void rt5639_record_depop_work(struct work_struct *work);
+static struct workqueue_struct *g_rt5639_record_depop_work_queue = NULL;
+static DECLARE_DELAYED_WORK(g_rt5639_record_depop_work, rt5639_record_depop_work);
 #endif
 static struct rt5639_init_reg init_list[] = {
 	{RT5639_GEN_CTRL1	, 0x3f01},/* fa[12:13] = 1'b;
@@ -883,11 +889,19 @@ static int rt5639_set_gain(struct snd_kcontrol *kcontrol,
 			snd_soc_write(codec, RT5639_DRC_AGC_2,0x1f00);
 			snd_soc_write(codec, RT5639_DRC_AGC_3,0x0000);
 		}
+#ifdef USE_RECORD_DEPOP
+		snd_soc_update_bits(codec, RT5639_ADC_DIG_VOL, RT5639_L_MUTE|RT5639_R_MUTE
+                                , RT5639_L_MUTE|RT5639_R_MUTE);
+#endif
 		break;
 
 	case RT5639_RECORDING_AMIC_DIS:
 		printk("%s(): End AMIC Recording\n", __func__);
 		isRecording_AMIC = false;
+#ifdef USE_RECORD_DEPOP
+		snd_soc_update_bits(codec, RT5639_ADC_DIG_VOL, RT5639_L_MUTE|RT5639_R_MUTE
+                                , RT5639_L_MUTE|RT5639_R_MUTE);
+#endif
 		break;
 
 	case RT5639_RECORDING_DMIC:
@@ -901,12 +915,26 @@ static int rt5639_set_gain(struct snd_kcontrol *kcontrol,
 				snd_soc_write(codec, RT5639_DRC_AGC_3,0x3044);
 			}
 		}
+#ifdef USE_RECORD_DEPOP
+		pr_debug("%s: mute recording first to depop\n", __func__);
+		snd_soc_update_bits(codec, RT5639_ADC_DIG_VOL, RT5639_L_MUTE|RT5639_R_MUTE
+				, RT5639_L_MUTE|RT5639_R_MUTE);
+		queue_delayed_work(g_rt5639_record_depop_work_queue,
+                          &g_rt5639_record_depop_work, msecs_to_jiffies(200));
+#endif
 		break;
 
 	case RT5639_RECORDING_AMIC:
 		isRecording_AMIC = true;
 		printk("%s(): set AMIC parameter isRecording_AMIC = %d\n", __func__,isRecording_AMIC);
 		/* set heaset mic gain */
+#ifdef USE_RECORD_DEPOP
+		pr_debug("%s: mute recording first to depop\n", __func__);
+		snd_soc_update_bits(codec, RT5639_ADC_DIG_VOL, RT5639_L_MUTE|RT5639_R_MUTE
+				, RT5639_L_MUTE|RT5639_R_MUTE);
+		queue_delayed_work(g_rt5639_record_depop_work_queue,
+                          &g_rt5639_record_depop_work, msecs_to_jiffies(200));
+#endif
 		break;
 
 	default:
@@ -916,6 +944,16 @@ static int rt5639_set_gain(struct snd_kcontrol *kcontrol,
 
 	return ret;
 }
+#ifdef USE_RECORD_DEPOP
+static void rt5639_record_depop_work(struct work_struct *work) {
+        pr_debug("%s: prepare to unmute recording after pop noise\n", __func__);
+        if (isRecording_AMIC || isRecording_DMIC) {
+		snd_soc_update_bits(rt5639_audio_codec, RT5639_ADC_DIG_VOL,
+				RT5639_L_MUTE|RT5639_R_MUTE, 0);
+		pr_debug("%s: success to unmute recording after pop noise\n", __func__);
+        }
+}
+#endif
 
 static const struct snd_kcontrol_new rt5639_snd_controls[] = {
 	/* Speaker Output Volume */
@@ -1655,24 +1693,24 @@ static void rt5639_pmu_depop(struct snd_soc_codec *codec)
 {
 	hp_amp_power(codec, 1);
 	/* headphone unmute sequence */
-	#ifdef USE_HEADSET_DEPOP
+#ifdef USE_HEADSET_DEPOP
 	headset_depop = true;
 	queue_work(g_rt5639_headset_depop_work_queue, &g_rt5639_headset_depop_work);
-	#else
+#else
 	msleep(5);
 	snd_soc_update_bits(codec, RT5639_HP_VOL,
 		RT5639_L_MUTE | RT5639_R_MUTE, 0);
 	msleep(65);
 	/*snd_soc_update_bits(codec, RT5639_HP_CALIB_AMP_DET,
 		RT5639_HPD_PS_MASK, RT5639_HPD_PS_EN);*/
-	#endif
+#endif
 }
 
 static void rt5639_pmd_depop(struct snd_soc_codec *codec)
 {
-	#ifdef USE_HEADSET_DEPOP
+#ifdef USE_HEADSET_DEPOP
 	headset_depop = false;
-	#endif
+#endif
 	snd_soc_update_bits(codec, RT5639_DEPOP_M3,
 		RT5639_CP_FQ1_MASK | RT5639_CP_FQ2_MASK | RT5639_CP_FQ3_MASK,
 		(RT5639_CP_FQ_96_KHZ << RT5639_CP_FQ1_SFT) |
@@ -2963,7 +3001,7 @@ static ssize_t rt5639_codec_show(struct device *dev,
 	for (i = 0; i <= RT5639_VENDOR_ID2; i++) {
 		if (cnt + RT5639_REG_DISP_LEN >= PAGE_SIZE)
 			break;
-		val = codec->hw_read(codec, i);
+		val = snd_soc_read(codec, i);
 		if (!val)
 			continue;
 		cnt += snprintf(buf + cnt, RT5639_REG_DISP_LEN,
@@ -3013,7 +3051,7 @@ static ssize_t rt5639_codec_store(struct device *dev,
 
 	if (i == count)
 		dev_info(codec->dev, "0x%02x = 0x%04x\n", addr,
-			codec->hw_read(codec, addr));
+			snd_soc_read(codec, addr));
 	else
 		snd_soc_write(codec, addr, val);
 
@@ -3080,13 +3118,13 @@ static int rt5639_probe(struct snd_soc_codec *codec)
 {
 	struct rt5639_priv *rt5639 = snd_soc_codec_get_drvdata(codec);
 	int ret;
-printk("rt5639_probe\n");
+	pr_info("rt5639_probe\n");
 	pr_info("Codec driver version %s\n", VERSION);
 
 	if (machine_is_mozart())
 		project_info = mozart;
 	else if (machine_is_haydn())
-		project_info =  haydn;
+		project_info = haydn;
 
 	codec->dapm.idle_bias_off = 1;
 	ret = snd_soc_codec_set_cache_io(codec, 8, 16, SND_SOC_I2C);
@@ -3139,6 +3177,9 @@ printk("rt5639_probe\n");
 #ifdef USE_HEADSET_DEPOP
 	g_rt5639_headset_depop_work_queue = create_workqueue("rt5639_headset_depop");
 #endif
+#ifdef USE_RECORD_DEPOP
+	 g_rt5639_record_depop_work_queue = create_workqueue("rt5639_record_depop");
+#endif
 	snd_soc_add_codec_controls(codec, rt5639_snd_controls,
 			ARRAY_SIZE(rt5639_snd_controls));
 	snd_soc_dapm_new_controls(&codec->dapm, rt5639_dapm_widgets,
@@ -3187,14 +3228,18 @@ printk("rt5639_probe\n");
 static int rt5639_remove(struct snd_soc_codec *codec)
 {
 	rt5639_set_bias_level(codec, SND_SOC_BIAS_OFF);
-	#ifdef CONFIG_PM
+#ifdef CONFIG_PM
 	if(g_rt5639_resume_work_queue)
 		destroy_workqueue(g_rt5639_resume_work_queue);
-	#endif
-	#ifdef USE_HEADSET_DEPOP
+#endif
+#ifdef USE_HEADSET_DEPOP
 	if(g_rt5639_headset_depop_work_queue)
 		destroy_workqueue(g_rt5639_headset_depop_work_queue);
-	#endif
+#endif
+#ifdef USE_RECORD_DEPOP
+	if(g_rt5639_record_depop_work_queue)
+                destroy_workqueue(g_rt5639_record_depop_work_queue);
+#endif
 	return 0;
 }
 

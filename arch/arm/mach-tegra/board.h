@@ -29,10 +29,6 @@
 #include <linux/power_supply.h>
 #include <linux/memory.h>
 
-#ifdef CONFIG_TEGRA_NVDUMPER
-#define NVDUMPER_RESERVED_SIZE 4096UL
-#endif
-
 #define ADD_FIXED_VOLTAGE_REG(_name)	(&_name##_fixed_voltage_device)
 
 /* Macro for defining fixed voltage regulator */
@@ -144,7 +140,8 @@ extern unsigned long tegra_vpr_size;
 extern unsigned long tegra_lp0_vec_start;
 extern unsigned long tegra_lp0_vec_size;
 #ifdef CONFIG_TEGRA_NVDUMPER
-extern unsigned long nvdumper_reserved;
+extern unsigned long tegra_nvdumper_start;
+extern unsigned long tegra_nvdumper_size;
 #endif
 extern bool tegra_lp0_vec_relocate;
 extern unsigned long tegra_grhost_aperture;
@@ -198,6 +195,7 @@ void tegra_get_leftspeaker_board_info(struct board_info *bi);
 int tegra_get_board_panel_id(void);
 
 int get_core_edp(void);
+bool is_pike_supported(void);
 enum panel_type get_panel_type(void);
 int tegra_get_usb_port_owner_info(void);
 int tegra_get_modem_id(void);

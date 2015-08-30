@@ -121,6 +121,10 @@
 #define MIRACAST_AMPDU_SIZE	8
 #endif
 
+#ifndef MIRACAST_AMPDU_BA_WSIZE
+#define MIRACAST_AMPDU_BA_WSIZE 16
+#endif
+
 #ifndef MIRACAST_MCHAN_ALGO
 #define MIRACAST_MCHAN_ALGO     1
 #endif
@@ -1138,6 +1142,13 @@ wl_android_set_miracast(struct net_device *dev, char *command, int total_len)
 		config.iovar = "ampdu_mpdu";
 		config.param = MIRACAST_AMPDU_SIZE;
 		ret = wl_android_iolist_add(dev, &miracast_resume_list, &config);
+
+#ifdef BCM4334X_MCC_ENABLE
+		config.iovar = "ampdu_ba_wsize";
+		config.param = MIRACAST_AMPDU_BA_WSIZE;
+		ret = wl_android_iolist_add(dev, &miracast_resume_list, &config);
+#endif /* BCM4334X_MCC_ENABLE */
+
 		if (ret)
 			goto resume;
 		/* FALLTROUGH */
@@ -1483,7 +1494,7 @@ void wl_android_post_init(void)
 
 #ifdef ENABLE_4335BT_WAR
 	bcm_bt_unlock(lock_cookie_wifi);
-	printf("%s: btlock released\n", __FUNCTION__);
+	printk("%s: btlock released\n", __FUNCTION__);
 #endif /* ENABLE_4335BT_WAR */
 
 	if (!dhd_download_fw_on_driverload) {
@@ -1831,10 +1842,10 @@ int wifi_set_power(int on, unsigned long msec)
 	if (wifi_control_data && wifi_control_data->set_power) {
 #ifdef ENABLE_4335BT_WAR
 		if (on) {
-			printf("WiFi: trying to acquire BT lock\n");
+			printk("WiFi: trying to acquire BT lock\n");
 			if (bcm_bt_lock(lock_cookie_wifi) != 0)
-				printf("** WiFi: timeout in acquiring bt lock**\n");
-			printf("%s: btlock acquired\n", __FUNCTION__);
+				printk("** WiFi: timeout in acquiring bt lock**\n");
+			printk("%s: btlock acquired\n", __FUNCTION__);
 		}
 		else {
 			/* For a exceptional case, release btlock */
@@ -1868,7 +1879,6 @@ int wifi_set_power(int on, unsigned long msec)
 	if (msec && !ret)
 		OSL_SLEEP(msec);
 	return ret;
-
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
@@ -2074,10 +2084,16 @@ static int wifi_suspend(struct platform_device *pdev, pm_message_t state)
 static int wifi_resume(struct platform_device *pdev)
 {
 	DHD_TRACE(("##> %s\n", __FUNCTION__));
+	dhd_pub_t *dhdp = bcmsdh_get_drvdata();
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 39)) && defined(OOB_INTR_ONLY) && 1
 	if (dhd_os_check_if_up(bcmsdh_get_drvdata()))
 		bcmsdh_oob_intr_set(1);
 #endif /* (OOB_INTR_ONLY) */
+	if (dhd_os_check_if_up(dhdp)) {
+		if (dhdp->op_mode & DHD_FLAG_HOSTAP_MODE)
+			dhd_ap_wake_lock_timeout(dhdp, 3000);
+	}
+
 	return 0;
 }
 

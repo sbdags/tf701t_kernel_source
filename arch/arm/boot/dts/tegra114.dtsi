@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -115,6 +115,14 @@
 		interrupts = <0 53 0x04>;
 		scl-gpios = <&gpio 206 0>; /* gpio PZ6 */
 		sda-gpios = <&gpio 207 0>; /* gpio PZ7 */
+		status = "disabled";
+	};
+
+	memory-controller@7001b000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "nvidia,tegra11-emc";
+		reg = <0x7001b000 0x800>;
 		status = "disabled";
 	};
 

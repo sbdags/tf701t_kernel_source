@@ -33,7 +33,6 @@ int __init touch_init_raydium(int irq_gpio, int reset_gpio,
 				int asize)
 {
 	int err = 0;
-
 	gpio_request(irq_gpio, "raydium-irq");
 	gpio_direction_input(irq_gpio);
 

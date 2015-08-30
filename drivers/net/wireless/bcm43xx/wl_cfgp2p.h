@@ -135,21 +135,21 @@ enum wl_cfgp2p_status {
 #define CFGP2P_ERR(args)									\
 	do {										\
 		if (wl_dbg_level & WL_DBG_ERR) {				\
-			printf(KERN_INFO CFGP2P_ERROR_TEXT "%s : ", __func__);	\
+			printk(KERN_INFO CFGP2P_ERROR_TEXT "%s : ", __func__);	\
 			printk args;						\
 		}									\
 	} while (0)
 #define	CFGP2P_INFO(args)									\
 	do {										\
 		if (wl_dbg_level & WL_DBG_INFO) {				\
-			printf(KERN_INFO "CFGP2P-INFO) %s : ", __func__);	\
+			printk(KERN_INFO "CFGP2P-INFO) %s : ", __func__);	\
 			printk args;						\
 		}									\
 	} while (0)
 #define	CFGP2P_DBG(args)								\
 	do {									\
 		if (wl_dbg_level & WL_DBG_DBG) {			\
-			printf(KERN_DEBUG "CFGP2P-DEBUG) %s :", __func__);	\
+			printk(KERN_DEBUG "CFGP2P-DEBUG) %s :", __func__);	\
 			printk args;							\
 		}									\
 	} while (0)
@@ -157,7 +157,7 @@ enum wl_cfgp2p_status {
 #define	CFGP2P_ACTION(args)								\
 	do {									\
 		if (wl_dbg_level & WL_DBG_P2P_ACTION) {			\
-			printf(KERN_DEBUG "CFGP2P-ACTION) %s :", __func__);	\
+			printk(KERN_DEBUG "CFGP2P-ACTION) %s :", __func__);	\
 			printk args;							\
 		}									\
 	} while (0)

@@ -375,7 +375,7 @@ static void tegra_change_otg_state(struct tegra_otg_data *tegra,
 			tegra_otg_start_gadget(tegra, 0);
 		}
 	} else if ((from == OTG_STATE_A_SUSPEND) && (to == OTG_STATE_A_SUSPEND) && (vbus_val_flag == 1)) {
-		suspend_to_suspend_cable_report();
+			suspend_to_suspend_cable_report();
 	}
 }
 
@@ -787,24 +787,10 @@ static int tegra_otg_suspend(struct device *dev)
 	struct tegra_otg_data *tegra = platform_get_drvdata(pdev);
 	enum usb_otg_state from = tegra->phy.state;
 	unsigned int val;
-	hw_rev revision = asustek_get_hw_rev();
 
 	mutex_lock(&tegra->irq_work_mutex);
 	DBG("%s(%d) BEGIN state : %s\n", __func__, __LINE__,
 				tegra_state_name(tegra->phy.state));
-
-	// Disable USB-HUB current by GPIO_PBB5.
-	if (machine_is_haydn()) {
-		switch (revision) {
-		case HW_REV_A: break;
-		case HW_REV_C: break;
-		case HW_REV_E: break;
-		default:
-			printk(KERN_INFO "P1802 USB-HUB Power off\n");
-			gpio_set_value(TEGRA_GPIO_PBB5, 0);
-			break;
-		}
-	}
 
 	pm_runtime_get_sync(dev);
 	clk_prepare_enable(tegra->clk);

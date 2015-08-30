@@ -281,7 +281,7 @@ PALMAS_REGS_PDATA(smps123, 900,  1350, NULL, 0, 0, 0, 0,
 	0, PALMAS_EXT_CONTROL_ENABLE1, 0, 3, 0);
 PALMAS_REGS_PDATA(smps45, 900,  1400, NULL, 0, 0, 0, 0,
 	0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REGS_PDATA(smps6, 3300,  3300, NULL, 0, 0, 1, NORMAL,
+PALMAS_REGS_PDATA(smps6, 3160,  3160, NULL, 0, 0, 1, NORMAL,
 	0, 0, 0, 0, 0);
 PALMAS_REGS_PDATA(smps7, 1350,  1350, NULL, 0, 0, 1, NORMAL,
 	0, 0, 0, 0, 0);
@@ -905,21 +905,6 @@ static struct soctherm_platform_data tegratab_soctherm_data = {
 				},
 			},
 		},
-		[THROTTLE_OC2] = {
-			.throt_mode = BRIEF,
-			.polarity = 1,
-			.intr = true,
-			.devs = {
-				[THROTTLE_DEV_CPU] = {
-					.enable = true,
-					.depth = 50,
-				},
-				[THROTTLE_DEV_GPU] = {
-					.enable = false,
-					.depth = 50,
-				},
-			},
-		},
 		[THROTTLE_OC4] = {
 			.throt_mode = BRIEF,
 			.polarity = 1,
@@ -945,11 +930,14 @@ int __init tegratab_soctherm_init(void)
 
 	tegra_get_board_info(&board_info);
 
-	/* E1569 has only oc4 input for pmu powergood */
+	/*
+	 * P1640 has oc4 from ina230. E1569 has oc4 from pmic powergood
+	 * Disable oc4 throttle for E1569
+	 */
 	if (board_info.board_id == BOARD_E1569) {
-		tegratab_soctherm_data.throttle[THROTTLE_OC2]
+		tegratab_soctherm_data.throttle[THROTTLE_OC4]
 			.devs[THROTTLE_DEV_CPU].enable = false;
-		tegratab_soctherm_data.throttle[THROTTLE_OC2]
+		tegratab_soctherm_data.throttle[THROTTLE_OC4]
 			.devs[THROTTLE_DEV_GPU].enable = false;
 	}
 

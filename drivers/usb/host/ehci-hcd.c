@@ -498,6 +498,7 @@ static void ehci_silence_controller(struct ehci_hcd *ehci)
 static void ehci_shutdown(struct usb_hcd *hcd)
 {
 	struct ehci_hcd	*ehci = hcd_to_ehci(hcd);
+
 	pr_info("%s +\n", __func__);
 
 	del_timer_sync(&ehci->watchdog);

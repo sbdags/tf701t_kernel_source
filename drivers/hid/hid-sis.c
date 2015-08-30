@@ -54,6 +54,7 @@ static struct class *sis_char_class = NULL;
 #define REPORTID_10		0x10
 #define REPORTID_TYPE1		0x30
 
+
 #define CTRL 0
 #define ENDP_01 1
 #define ENDP_02 2
@@ -70,6 +71,8 @@ static struct urb *backup_urb = NULL;
 #define PACKET_BUFFER_SIZE				128
 static unsigned char mfw_info[12] = {0};
 static struct switch_dev sis_touch_sdev;
+
+static bool read_firmware_ID = false;
 
 struct Point {
 	u16 x, y, id, pressure, width, height;
@@ -996,6 +999,8 @@ static int sis_ts_suspend(struct device *dev){
 static int sis_ts_resume(struct device *dev){
 	pr_info("%s:++++\n", __func__);
 	gpio_direction_output(TEGRA_GPIO_PH0, 1);
+	if(!read_firmware_ID)
+	    read_firmware_ID = true;
 	pr_info("%s:----\n", __func__);
 	return 0;
 }
@@ -1087,7 +1092,6 @@ err_free_mem:
 static int sis_probe(struct hid_device *hdev, const struct hid_device_id *id)
 {
 	int ret;
-
     	struct usb_interface *intf = to_usb_interface(hdev->dev.parent);
     	struct usb_device *dev = interface_to_usbdev(intf);
 	struct sis_data *nd;
@@ -1111,7 +1115,7 @@ static int sis_probe(struct hid_device *hdev, const struct hid_device_id *id)
 		return -ENOMEM;
 	}
 
-      if(!mfw_info[0]){
+      if(!read_firmware_ID){
           printk("##########SIS: read firmeare ID and versino.\n");
           read_firmware_version();
 	}
@@ -1250,6 +1254,7 @@ static void sis_remove(struct hid_device *hdev)
           hid_set_drvdata(hdev, NULL);
           hid_dev_backup = NULL;
 	}
+	read_firmware_ID = false;
 	pr_info("%s:----\n",__func__);
 }
 

@@ -47,6 +47,14 @@
 
 #define MAX_TUNING_LOOP 40
 
+#define DELAYED_CLK_GATING_TICK_TMOUT (HZ / 50)
+
+#define IS_DELAYED_CLK_GATE(host) \
+		((host->quirks2 & SDHCI_QUIRK2_DELAYED_CLK_GATE) && \
+		(host->mmc->card && ( \
+		(host->mmc->card->type == MMC_TYPE_MMC) /* EMMC */ \
+		)))
+
 static unsigned int debug_quirks = 0;
 static unsigned int debug_quirks2;
 
@@ -73,51 +81,51 @@ static inline int sdhci_runtime_pm_put(struct sdhci_host *host)
 
 static void sdhci_dumpregs(struct sdhci_host *host)
 {
-	pr_debug(DRIVER_NAME ": =========== REGISTER DUMP (%s)===========\n",
+	pr_err(DRIVER_NAME ": =========== REGISTER DUMP (%s)===========\n",
 		mmc_hostname(host->mmc));
 
-	pr_debug(DRIVER_NAME ": Sys addr: 0x%08x | Version:  0x%08x\n",
+	pr_err(DRIVER_NAME ": Sys addr: 0x%08x | Version:  0x%08x\n",
 		sdhci_readl(host, SDHCI_DMA_ADDRESS),
 		sdhci_readw(host, SDHCI_HOST_VERSION));
-	pr_debug(DRIVER_NAME ": Blk size: 0x%08x | Blk cnt:  0x%08x\n",
+	pr_err(DRIVER_NAME ": Blk size: 0x%08x | Blk cnt:  0x%08x\n",
 		sdhci_readw(host, SDHCI_BLOCK_SIZE),
 		sdhci_readw(host, SDHCI_BLOCK_COUNT));
-	pr_debug(DRIVER_NAME ": Argument: 0x%08x | Trn mode: 0x%08x\n",
+	pr_err(DRIVER_NAME ": Argument: 0x%08x | Trn mode: 0x%08x\n",
 		sdhci_readl(host, SDHCI_ARGUMENT),
 		sdhci_readw(host, SDHCI_TRANSFER_MODE));
-	pr_debug(DRIVER_NAME ": Present:  0x%08x | Host ctl: 0x%08x\n",
+	pr_err(DRIVER_NAME ": Present:  0x%08x | Host ctl: 0x%08x\n",
 		sdhci_readl(host, SDHCI_PRESENT_STATE),
 		sdhci_readb(host, SDHCI_HOST_CONTROL));
-	pr_debug(DRIVER_NAME ": Power:    0x%08x | Blk gap:  0x%08x\n",
+	pr_err(DRIVER_NAME ": Power:    0x%08x | Blk gap:  0x%08x\n",
 		sdhci_readb(host, SDHCI_POWER_CONTROL),
 		sdhci_readb(host, SDHCI_BLOCK_GAP_CONTROL));
-	pr_debug(DRIVER_NAME ": Wake-up:  0x%08x | Clock:    0x%08x\n",
+	pr_err(DRIVER_NAME ": Wake-up:  0x%08x | Clock:    0x%08x\n",
 		sdhci_readb(host, SDHCI_WAKE_UP_CONTROL),
 		sdhci_readw(host, SDHCI_CLOCK_CONTROL));
-	pr_debug(DRIVER_NAME ": Timeout:  0x%08x | Int stat: 0x%08x\n",
+	pr_err(DRIVER_NAME ": Timeout:  0x%08x | Int stat: 0x%08x\n",
 		sdhci_readb(host, SDHCI_TIMEOUT_CONTROL),
 		sdhci_readl(host, SDHCI_INT_STATUS));
-	pr_debug(DRIVER_NAME ": Int enab: 0x%08x | Sig enab: 0x%08x\n",
+	pr_err(DRIVER_NAME ": Int enab: 0x%08x | Sig enab: 0x%08x\n",
 		sdhci_readl(host, SDHCI_INT_ENABLE),
 		sdhci_readl(host, SDHCI_SIGNAL_ENABLE));
-	pr_debug(DRIVER_NAME ": AC12 err: 0x%08x | Slot int: 0x%08x\n",
+	pr_err(DRIVER_NAME ": AC12 err: 0x%08x | Slot int: 0x%08x\n",
 		sdhci_readw(host, SDHCI_ACMD12_ERR),
 		sdhci_readw(host, SDHCI_SLOT_INT_STATUS));
-	pr_debug(DRIVER_NAME ": Caps:     0x%08x | Caps_1:   0x%08x\n",
+	pr_err(DRIVER_NAME ": Caps:     0x%08x | Caps_1:   0x%08x\n",
 		sdhci_readl(host, SDHCI_CAPABILITIES),
 		sdhci_readl(host, SDHCI_CAPABILITIES_1));
-	pr_debug(DRIVER_NAME ": Cmd:      0x%08x | Max curr: 0x%08x\n",
+	pr_err(DRIVER_NAME ": Cmd:      0x%08x | Max curr: 0x%08x\n",
 		sdhci_readw(host, SDHCI_COMMAND),
 		sdhci_readl(host, SDHCI_MAX_CURRENT));
-	pr_debug(DRIVER_NAME ": Host ctl2: 0x%08x\n",
+	pr_err(DRIVER_NAME ": Host ctl2: 0x%08x\n",
 		sdhci_readw(host, SDHCI_HOST_CONTROL2));
 
 	if (host->flags & SDHCI_USE_ADMA)
-		pr_debug(DRIVER_NAME ": ADMA Err: 0x%08x | ADMA Ptr: 0x%08x\n",
+		pr_err(DRIVER_NAME ": ADMA Err: 0x%08x | ADMA Ptr: 0x%08x\n",
 		       readl(host->ioaddr + SDHCI_ADMA_ERROR),
 		       readl(host->ioaddr + SDHCI_ADMA_ADDRESS));
 
-	pr_debug(DRIVER_NAME ": ===========================================\n");
+	pr_err(DRIVER_NAME ": ===========================================\n");
 }
 
 /*****************************************************************************\
@@ -989,7 +997,14 @@ static void sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 		mdelay(1);
 	}
 
-	mod_timer(&host->timer, jiffies + 10 * HZ);
+	if ((cmd->opcode == MMC_SWITCH) &&
+		(((cmd->arg >> 16) & EXT_CSD_SANITIZE_START)
+		== EXT_CSD_SANITIZE_START))
+		timeout = 100;
+	else
+		timeout = 10;
+
+	mod_timer(&host->timer, jiffies + timeout * HZ);
 
 	host->cmd = cmd;
 
@@ -2033,6 +2048,11 @@ int sdhci_enable(struct mmc_host *mmc)
 	if (!mmc->card || mmc->card->type == MMC_TYPE_SDIO)
 		return 0;
 
+	if (IS_DELAYED_CLK_GATE(host)) {
+		/* cancel delayed clk gate work */
+		cancel_delayed_work_sync(&host->delayed_clk_gate_wrk);
+	}
+
 	if (mmc->ios.clock) {
 		if (host->ops->set_clock)
 			host->ops->set_clock(host, mmc->ios.clock);
@@ -2045,29 +2065,77 @@ int sdhci_enable(struct mmc_host *mmc)
 		if (ret)
 			dev_err(&pdev->dev, "Unable to set SD_EDP_HIGH state\n");
 	}
+#ifdef CONFIG_MMC_FREQ_SCALING
+	if (mmc->df) {
+		mmc->dev_stats->busy_time = 0;
+		schedule_delayed_work(&mmc->dfs_work,
+			msecs_to_jiffies(10));
+	}
+#endif
 
 	return 0;
 }
 
-int sdhci_disable(struct mmc_host *mmc)
+static void mmc_host_clk_gate(struct sdhci_host *host)
 {
-	struct sdhci_host *host = mmc_priv(mmc);
 	int ret;
 	struct platform_device *pdev = to_platform_device(mmc_dev(host->mmc));
-
-	if (!mmc->card || mmc->card->type == MMC_TYPE_SDIO)
-		return 0;
+	struct mmc_host *mmc = host->mmc;
 
 	sdhci_set_clock(host, 0);
 	if (host->ops->set_clock)
 		host->ops->set_clock(host, 0);
 
+	/*
+	 * Cancel any pending DFS work if clocks are turned off.
+	 */
+#ifdef CONFIG_MMC_FREQ_SCALING
+	if (mmc->df) {
+		cancel_delayed_work_sync(&mmc->dfs_work);
+		mutex_lock(&mmc->df->lock);
+		mmc->df->previous_freq = mmc->actual_clock;
+		mutex_unlock(&mmc->df->lock);
+
+	}
+#endif
 	if (host->sd_edp_client) {
 		ret = edp_update_client_request(host->sd_edp_client,
 				SD_EDP_LOW, NULL);
 		if (ret)
 			dev_err(&pdev->dev, "Unable to set SD_EDP_LOW state\n");
 	}
+	return;
+}
+
+void delayed_clk_gate_cb(struct work_struct *work)
+{
+	struct sdhci_host *host = container_of(work, struct sdhci_host,
+					      delayed_clk_gate_wrk.work);
+	/* power off check */
+	if (host->mmc->ios.power_mode == MMC_POWER_OFF)
+		goto end;
+
+	mmc_host_clk_gate(host);
+end:
+	return;
+}
+EXPORT_SYMBOL_GPL(delayed_clk_gate_cb);
+
+int sdhci_disable(struct mmc_host *mmc)
+{
+	struct sdhci_host *host = mmc_priv(mmc);
+
+	if (!mmc->card || mmc->card->type == MMC_TYPE_SDIO)
+		return 0;
+
+	if (IS_DELAYED_CLK_GATE(host)) {
+		if (host->is_clk_on)
+			schedule_delayed_work(&host->delayed_clk_gate_wrk,
+				DELAYED_CLK_GATING_TICK_TMOUT);
+		return 0;
+	}
+
+	mmc_host_clk_gate(host);
 
 	return 0;
 }
@@ -2293,6 +2361,7 @@ static void sdhci_cmd_irq(struct sdhci_host *host, u32 intmask)
 	} else if (intmask & (SDHCI_INT_CRC | SDHCI_INT_END_BIT |
 			SDHCI_INT_INDEX)) {
 		host->cmd->error = -EILSEQ;
+		sdhci_dumpregs(host);
 		pr_err("%s: Command CRC or END bit error, intmask: %x\n",
 				mmc_hostname(host->mmc), intmask);
 	}
@@ -2398,6 +2467,7 @@ static void sdhci_data_irq(struct sdhci_host *host, u32 intmask)
 		host->data->error = -ETIMEDOUT;
 		pr_err("%s: Data Timeout error, intmask: %x\n",
 				mmc_hostname(host->mmc), intmask);
+		sdhci_dumpregs(host);
 	} else if (intmask & SDHCI_INT_DATA_END_BIT) {
 		host->data->error = -EILSEQ;
 		pr_err("%s: Data END Bit error, intmask: %x\n",
@@ -2408,8 +2478,10 @@ static void sdhci_data_irq(struct sdhci_host *host, u32 intmask)
 		host->data->error = -EILSEQ;
 		pr_err("%s: Data CRC error, intmask: %x\n",
 				mmc_hostname(host->mmc), intmask);
+		sdhci_dumpregs(host);
 	} else if (intmask & SDHCI_INT_ADMA_ERROR) {
 		pr_err("%s: ADMA error\n", mmc_hostname(host->mmc));
+		sdhci_dumpregs(host);
 		sdhci_show_adma_error(host);
 		host->data->error = -EIO;
 	}
@@ -2631,6 +2703,9 @@ int sdhci_suspend_host(struct sdhci_host *host)
 			SDHCI_INT_CARD_INT;
 
 	sdhci_mask_irqs(host, SDHCI_INT_ALL_MASK);
+
+	/* cancel sdio clk gate work */
+	cancel_delayed_work_sync(&host->delayed_clk_gate_wrk);
 
 	if (host->irq)
 		disable_irq(host->irq);

@@ -571,9 +571,11 @@ int tegra_dvfs_predict_millivolts(struct clk *c, unsigned long rate)
 	if (!rate || !c->dvfs)
 		return 0;
 
-	millivolts = dvfs_get_millivolts(c->dvfs, rate);
+	millivolts = tegra_dvfs_is_dfll_range(c->dvfs, rate) ?
+		c->dvfs->dfll_millivolts : c->dvfs->millivolts;
 	return predict_millivolts(c, millivolts, rate);
 }
+EXPORT_SYMBOL(tegra_dvfs_predict_millivolts);
 
 int tegra_dvfs_predict_millivolts_pll(struct clk *c, unsigned long rate)
 {
@@ -674,8 +676,70 @@ out:
 	mutex_unlock(&rail_override_lock);
 	return ret;
 }
+
+static int dvfs_set_fmax_at_vmin(struct clk *c, unsigned long f_max, int v_min)
+{
+	int i, ret = 0;
+	struct dvfs *d = c->dvfs;
+	unsigned long f_min = 1000;	/* 1kHz min rate in DVFS tables */
+
+	mutex_lock(&rail_override_lock);
+	mutex_lock(&dvfs_lock);
+
+	if (v_min > d->dvfs_rail->override_millivolts) {
+		pr_err("%s: new %s vmin %dmV is above override voltage %dmV\n",
+		       __func__, c->name, v_min,
+		       d->dvfs_rail->override_millivolts);
+		ret = -EPERM;
+		goto out;
+	}
+
+	if (v_min >= d->max_millivolts) {
+		pr_err("%s: new %s vmin %dmV is at/above max voltage %dmV\n",
+		       __func__, c->name, v_min, d->max_millivolts);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	/*
+	 * dvfs table update:
+	 * - for voltages below new v_min the respective frequencies are shifted
+	 * below new f_max to the levels already present in the table; if the
+	 * 1st table entry has frequency above new fmax, all entries below v_min
+	 * are filled in with 1kHz (min rate used in DVFS tables).
+	 * - for voltages above new v_min, the respective frequencies are
+	 * increased to at least new f_max
+	 * - if new v_min is already in the table set the respective frequency
+	 * to new f_max
+	 */
+	for (i = 0; i < d->num_freqs; i++) {
+		int mv = d->millivolts[i];
+		unsigned long f = d->freqs[i];
+
+		if (mv < v_min) {
+			if (d->freqs[i] >= f_max)
+				d->freqs[i] = i ? d->freqs[i-1] : f_min;
+		} else if (mv > v_min) {
+			d->freqs[i] = max(f, f_max);
+		} else {
+			d->freqs[i] = f_max;
+		}
+		ret = __tegra_dvfs_set_rate(d, d->cur_rate);
+	}
+out:
+	mutex_unlock(&dvfs_lock);
+	mutex_unlock(&rail_override_lock);
+
+	return ret;
+}
 #else
 static int dvfs_override_core_voltage(int override_mv)
+{
+	pr_err("%s: vdd core override is not supported\n", __func__);
+	return -ENOSYS;
+}
+
+static int dvfs_set_fmax_at_vmin(struct clk *c, unsigned long f_max, int v_min)
 {
 	pr_err("%s: vdd core override is not supported\n", __func__);
 	return -ENOSYS;
@@ -691,6 +755,16 @@ int tegra_dvfs_override_core_voltage(struct clk *c, int override_mv)
 	return dvfs_override_core_voltage(override_mv);
 }
 EXPORT_SYMBOL(tegra_dvfs_override_core_voltage);
+
+int tegra_dvfs_set_fmax_at_vmin(struct clk *c, unsigned long f_max, int v_min)
+{
+	if (!c->dvfs || !c->dvfs->can_override) {
+		pr_err("%s: %s cannot set fmax_at_vmin)\n", __func__, c->name);
+		return -EPERM;
+	}
+	return dvfs_set_fmax_at_vmin(c, f_max, v_min);
+}
+EXPORT_SYMBOL(tegra_dvfs_set_fmax_at_vmin);
 
 /* May only be called during clock init, does not take any locks on clock c. */
 int __init tegra_enable_dvfs_on_clk(struct clk *c, struct dvfs *d)
@@ -1392,6 +1466,74 @@ static int core_override_set(void *data, u64 val)
 DEFINE_SIMPLE_ATTRIBUTE(core_override_fops,
 			core_override_get, core_override_set, "%llu\n");
 
+static int dvfs_table_show(struct seq_file *s, void *data)
+{
+	int i;
+	struct dvfs *d;
+	struct dvfs_rail *rail;
+	const int *v_pll, *last_v_pll = NULL;
+	const int *v_dfll, *last_v_dfll = NULL;
+
+	seq_printf(s, "DVFS tables: units mV/MHz\n");
+
+	mutex_lock(&dvfs_lock);
+
+	list_for_each_entry(rail, &dvfs_rail_list, node) {
+		list_for_each_entry(d, &rail->dvfs, reg_node) {
+			bool mv_done = false;
+			v_pll = d->millivolts;
+			v_dfll = d->dfll_millivolts;
+
+			if (v_pll && (last_v_pll != v_pll)) {
+				if (!mv_done) {
+					seq_printf(s, "\n");
+					mv_done = true;
+				}
+				last_v_pll = v_pll;
+				seq_printf(s, "%-16s", rail->reg_id);
+				for (i = 0; i < d->num_freqs; i++)
+					seq_printf(s, "%7d", v_pll[i]);
+				seq_printf(s, "\n");
+			}
+
+			if (v_dfll && (last_v_dfll != v_dfll)) {
+				if (!mv_done) {
+					seq_printf(s, "\n");
+					mv_done = true;
+				}
+				last_v_dfll = v_dfll;
+				seq_printf(s, "%-8s (dfll) ", rail->reg_id);
+				for (i = 0; i < d->num_freqs; i++)
+					seq_printf(s, "%7d", v_dfll[i]);
+				seq_printf(s, "\n");
+			}
+
+			seq_printf(s, "%-16s", d->clk_name);
+			for (i = 0; i < d->num_freqs; i++) {
+				unsigned int f = d->freqs[i]/100000;
+				seq_printf(s, " %4u.%u", f/10, f%10);
+			}
+			seq_printf(s, "\n");
+		}
+	}
+
+	mutex_unlock(&dvfs_lock);
+
+	return 0;
+}
+
+static int dvfs_table_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, dvfs_table_show, inode->i_private);
+}
+
+static const struct file_operations dvfs_table_fops = {
+	.open		= dvfs_table_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
 int __init dvfs_debugfs_init(struct dentry *clk_debugfs_root)
 {
 	struct dentry *d;
@@ -1418,6 +1560,11 @@ int __init dvfs_debugfs_init(struct dentry *clk_debugfs_root)
 
 	d = debugfs_create_file("vdd_core_override", S_IRUGO | S_IWUSR,
 		clk_debugfs_root, NULL, &core_override_fops);
+	if (!d)
+		return -ENOMEM;
+
+	d = debugfs_create_file("dvfs_table", S_IRUGO, clk_debugfs_root, NULL,
+		&dvfs_table_fops);
 	if (!d)
 		return -ENOMEM;
 

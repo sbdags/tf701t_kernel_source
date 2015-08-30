@@ -166,7 +166,7 @@ static void detection_work(struct work_struct *work)
 		if (is_rt5639_suspended) {
 			msleep(150);
 		} else {
-			if (machine_is_haydn()) {
+			if (0) {                          //machine_is_haydn()
 				if (retry == RETRYMAX)
 					/*delay for jack pin stable. */
 					msleep(100);
@@ -192,7 +192,7 @@ static void detection_work(struct work_struct *work)
 	local_irq_restore(irq_flags);
 
 	/* Delay 1000ms for pin stable. */
-	if (machine_is_haydn())
+	if (0)    //machine_is_haydn()
 		msleep(DB_TIME_HAYDN);
 	else
 		msleep(1000);
@@ -202,7 +202,7 @@ static void detection_work(struct work_struct *work)
 	enable_irq(hs_data->irq);
 	local_irq_restore(irq_flags);
 
-	if (machine_is_mozart()) {
+	if (1) {    //machine_is_mozart()
 		if (gpio_get_value(JACK_GPIO) != 0) {
 		/* Headset not plugged in */
 			if (switch_get_state(&hs_data->sdev) == HEADSET_WITH_MIC ||
@@ -259,7 +259,7 @@ static int jack_config_gpio()
 			  IRQF_TRIGGER_FALLING|IRQF_TRIGGER_RISING, "h2w_detect", NULL);
 
 	ret = irq_set_irq_wake(hs_data->irq, 1);
-	if (machine_is_haydn())
+	if (0)    //machine_is_haydn
 		msleep(DB_TIME_HAYDN);
 	else
 		msleep(1);
@@ -377,7 +377,7 @@ static int codec_micbias_power(int on)
 		snd_soc_update_bits(rt5639_audio_codec, RT5639_PWR_ANLG1, RT5639_PWR_LDO2, RT5639_PWR_LDO2); /* Enable LDO2 */
 		/* VREF1, VREF2, mainbias and mainbias bandgap should be turned on
 		when use analog function by vendor's recommendation */
-		if (machine_is_haydn())
+		if (0)  //machine_is_haydn
 			snd_soc_update_bits(rt5639_audio_codec, RT5639_PWR_ANLG1,
 					RT5639_PWR_MB|RT5639_PWR_BG|RT5639_PWR_VREF1|RT5639_PWR_VREF2,
 					RT5639_PWR_MB|RT5639_PWR_BG|RT5639_PWR_VREF1|RT5639_PWR_VREF2);

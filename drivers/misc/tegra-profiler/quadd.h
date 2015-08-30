@@ -25,6 +25,7 @@ struct event_data;
 struct quadd_comm_data_interface;
 struct quadd_hrt_ctx;
 struct quadd_mmap_ctx;
+struct quadd_module_state;
 
 struct quadd_event_source_interface {
 	int (*enable)(void);
@@ -45,6 +46,7 @@ struct source_info {
 
 struct quadd_ctx {
 	struct quadd_parameters param;
+	struct quadd_comm_cap cap;
 
 	struct quadd_event_source_interface *pmu;
 	struct source_info pmu_info;
@@ -60,5 +62,7 @@ struct quadd_ctx {
 
 	int collect_kernel_ips;
 };
+
+void quadd_get_state(struct quadd_module_state *state);
 
 #endif	/* __QUADD_H */

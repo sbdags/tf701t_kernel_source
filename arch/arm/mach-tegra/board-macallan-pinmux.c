@@ -28,6 +28,7 @@
 #include <mach/board_asustek.h>
 #include <asm/mach-types.h>
 
+
 static __initdata struct tegra_drive_pingroup_config macallan_drive_pinmux[] = {
 	/* DEFAULT_DRIVE(<pin_group>), */
 	/* SDMMC1 */
@@ -157,5 +158,6 @@ int __init macallan_pinmux_init(void)
 		tegra_pinmux_config_table(macallan_pinmux_haydn_hw_rev_a,
 						ARRAY_SIZE(macallan_pinmux_haydn_hw_rev_a));
 	}
+
 	return 0;
 }

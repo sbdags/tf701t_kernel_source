@@ -273,8 +273,8 @@
 #define SET_OC_DETECTED3					(1 << 3)
 #define VBUS_ENABLE0						(1 << 8)
 #define VBUS_ENABLE1						(1 << 9)
-#define VBUS_ENABLE0_OC_MAP(x)         (((x) & 0x7) << 10)
-#define VBUS_ENABLE1_OC_MAP(x)         (((x) & 0x7) << 13)
+#define VBUS_ENABLE0_OC_MAP(x)		(((x) & 0x7) << 10)
+#define VBUS_ENABLE1_OC_MAP(x)		(((x) & 0x7) << 13)
 #define OC_DETECTED0						(1 << 16)
 #define OC_DETECTED1						(1 << 17)
 #define OC_DETECTED2						(1 << 18)
@@ -436,11 +436,10 @@
 #define IOPHY_USB3_PAD1_CTL_3_0	0x54
 #define EOM_CNTL(x)				(((x) & 0xffff) << 0)
 
-#define IOPHY_USB3_PAD0_CTL_4_0	0x58
+#define USB3_PAD_CTL_4_0(_p)	(0x58 + _p * 4)
 #define DFE_CNTL(x)				(((x) & 0xffffffff) << 0)
-
-#define IOPHY_USB3_PAD1_CTL_4_0	0x5c
-#define DFE_CNTL(x)				(((x) & 0xffffffff) << 0)
+#define DFE_CNTL_TAP_VAL(x)		((x & 0x1F) << 24)
+#define DFE_CNTL_AMP_VAL(x)		((x & 0x7F) << 16)
 
 #define IOPHY_MISC_PAD0_CTL_1_0	0x60
 #define IOPHY_MISC_PAD1_CTL_1_0	0x64
@@ -531,11 +530,12 @@
 #define RX_QEYE_EN				(1 << 8)
 #define RX_QEYE_OUT(x)			(((x) & 0xf) << 12)
 
-#define IOPHY_MISC_PAD0_CTL_6_0		0x88
-#define IOPHY_MISC_PAD1_CTL_6_0		0x8c
+#define MISC_PAD_CTL_6_0(_p)	(0x88 + _p * 4)
 #define MISC_TEST(x)			(((x) & 0xffff) << 0)
 #define MISC_OUT_SEL(x)			(((x) & 0xff) << 16)
 #define MISC_OUT(x)				(((x) & 0xff) << 24)
+#define MISC_OUT_TAP_VAL(reg)	((reg & (0x1F << 24)) >> 24)
+#define MISC_OUT_AMP_VAL(reg)	((reg & (0x7F << 24)) >> 24)
 
 #define USB2_OTG_PAD0_CTL_0_0	0x90
 #define USB2_OTG_PAD1_CTL_0_0	0x94

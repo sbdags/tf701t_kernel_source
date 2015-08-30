@@ -208,7 +208,6 @@ obj-$(CONFIG_SND_SOC_WM_HUBS)	+= snd-soc-wm-hubs.o
 obj-$(CONFIG_SND_SOC_RT5639)	+= snd-soc-rt5639.o
 obj-$(CONFIG_SND_SOC_RT5640)	+= snd-soc-rt5640.o
 
-
 # Amp
 obj-$(CONFIG_SND_SOC_MAX9877)	+= snd-soc-max9877.o
 obj-$(CONFIG_SND_SOC_TPA6130A2)	+= snd-soc-tpa6130a2.o

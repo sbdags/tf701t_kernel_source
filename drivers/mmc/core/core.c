@@ -2304,17 +2304,17 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 
 	/* Order's important: probe SDIO, then SD, then MMC */
 	if (!mmc_attach_sdio(host)) {
-		pr_info("%s: SDIO completed\n", mmc_hostname(host));
-		return 0;
-	}
-	if (!mmc_attach_sd(host)) {
-		pr_info("%s: SD completed\n", mmc_hostname(host));
-		return 0;
-	}
-	if (!mmc_attach_mmc(host)) {
-		pr_info("%s: eMMC completed\n", mmc_hostname(host));
-		return 0;
-	}
+                pr_info("%s: SDIO completed\n", mmc_hostname(host));
+                return 0;
+        }
+        if (!mmc_attach_sd(host)) {
+                pr_info("%s: SD completed\n", mmc_hostname(host));
+                return 0;
+        }
+        if (!mmc_attach_mmc(host)) {
+                pr_info("%s: eMMC completed\n", mmc_hostname(host));
+                return 0;
+        }
 
 	mmc_power_off(host);
 	return -EIO;
@@ -3174,8 +3174,8 @@ static int __init mmc_init(void)
 		return -ENOMEM;
 
 	wifi_workqueue = alloc_ordered_workqueue("kwifid", 0);
-        if (!wifi_workqueue)
-                return -ENOMEM;
+	if (!wifi_workqueue)
+		return -ENOMEM;
 
 	ret = mmc_register_bus();
 	if (ret)

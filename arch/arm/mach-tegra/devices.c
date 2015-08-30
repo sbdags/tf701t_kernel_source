@@ -34,6 +34,7 @@
 #include <mach/dma.h>
 #include <mach/usb_phy.h>
 #include <mach/tegra_smmu.h>
+#include <mach/fiq.h>
 
 #ifdef CONFIG_PLATFORM_ENABLE_IOMMU
 #include <asm/dma-iommu.h>
@@ -1767,6 +1768,16 @@ static struct resource tegra_wdt0_resources[] = {
 		.end	= TEGRA_QUATERNARY_ICTLR_BASE + \
 				TEGRA_QUATERNARY_ICTLR_SIZE -1,
 		.flags	= IORESOURCE_MEM,
+	},
+	[4] = {
+		.start  = TEGRA_WDT4_BASE,
+		.end    = TEGRA_WDT4_BASE + TEGRA_WDT4_SIZE - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+	[5] = {
+		.start  = TEGRA_FIQ_WAR_FIQ_NR,
+		.end    = TEGRA_FIQ_WAR_FIQ_NR,
+		.flags  = IORESOURCE_IRQ,
 	},
 #endif
 };

@@ -64,7 +64,6 @@
 #include <asm/mach/arch.h>
 #include <mach/usb_phy.h>
 #include <mach/gpio-tegra.h>
-#include <mach/tegra_fiq_debugger.h>
 #include <linux/platform_data/tegra_usb_modem_power.h>
 #include <mach/hardware.h>
 #include <mach/xusb.h>
@@ -259,9 +258,9 @@ static struct tegra_i2c_platform_data macallan_i2c5_platform_data = {
 	.arb_recovery = arb_lost_recovery,
 };
 
-/*static struct i2c_board_info __initdata rt5640_board_info = {
-	I2C_BOARD_INFO("rt5640", 0x1c),
-};*/
+//static struct i2c_board_info __initdata rt5640_board_info = {
+//	I2C_BOARD_INFO("rt5640", 0x1c),
+//};
 
 static struct i2c_board_info __initdata rt5639_board_info = {
 	I2C_BOARD_INFO("rt5639", 0x1c),
@@ -279,16 +278,16 @@ static struct i2c_board_info __initdata nfc_board_info = {
 };
 
 static struct i2c_board_info __initdata macallan_i2c_asuspec_info[] = {
-        {
-                I2C_BOARD_INFO("asuspec", 0x17),
-        },
+	{
+		I2C_BOARD_INFO("asuspec", 0x17),
+	},
 };
 
 
 static struct i2c_board_info __initdata macallan_i2c_asuspec_haydn_info[] = {
-        {
-                I2C_BOARD_INFO("asuspec", 0x15),
-        },
+	{
+		I2C_BOARD_INFO("asuspec", 0x15),
+	},
 };
 
 static struct i2c_board_info __initdata macallan_i2c_aw8ec_info[] = {
@@ -333,7 +332,6 @@ static void macallan_i2c_init(void)
 			break;
 		}
 	}
-
 
 	platform_device_register(&tegra11_i2c_device5);
 	platform_device_register(&tegra11_i2c_device4);
@@ -558,6 +556,8 @@ static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
 static struct tegra_usb_platform_data tegra_ehci3_utmi_pdata = {
 	.port_otg = false,
 	.has_hostpc = true,
+	.support_pmu_vbus = true,
+	.id_det_type = TEGRA_USB_PMU_ID,
 	.unaligned_dma_buf_supported = false,
 	.phy_intf = TEGRA_USB_PHY_INTF_UTMI,
 	.op_mode = TEGRA_USB_OPMODE_HOST,
@@ -566,9 +566,10 @@ static struct tegra_usb_platform_data tegra_ehci3_utmi_pdata = {
 		.hot_plug = false,
 		.remote_wakeup_supported = true,
 		.power_off_on_suspend = true,
+		.turn_off_vbus_on_lp0 = true,
 	},
 	.u_cfg.utmi = {
-		.hssync_start_delay = 0,
+	.hssync_start_delay = 0,
 		.elastic_limit = 16,
 		.idle_wait_delay = 17,
 		.term_range_adj = 6,
@@ -606,7 +607,6 @@ static void macallan_usb_init(void)
 		tegra_ehci3_device.dev.platform_data = &tegra_ehci3_utmi_pdata;
 		platform_device_register(&tegra_ehci3_device);
 	}
-
 }
 
 static struct tegra_xusb_board_data xusb_bdata = {
@@ -665,8 +665,15 @@ static int baseband_init(void)
 	return 0;
 }
 
+static void baseband_stop(void)
+{
+	/* place baseband into reset state */
+	gpio_set_value(MDM_RST, 0);
+}
+
 static const struct tegra_modem_operations baseband_operations = {
 	.init = baseband_init,
+	.stop = baseband_stop,
 };
 
 static struct tegra_usb_modem_power_platform_data baseband_pdata = {
@@ -833,9 +840,9 @@ static int __init macallan_touch_init(void)
 	tegra_clk_init_from_table(touch_clk_init_table);
 
 	if(machine_is_haydn()) {
-	   gpio_request(TEGRA_GPIO_PH0, "sis_tp_power");
-	   gpio_direction_output(TEGRA_GPIO_PH0, 1);
-	}
+           gpio_request(TEGRA_GPIO_PH0, "sis_tp_power");
+           gpio_direction_output(TEGRA_GPIO_PH0, 1);
+        }
 
 	if(machine_is_mozart()){
 		if (board_info.board_id == BOARD_E1582)
@@ -907,7 +914,6 @@ static void __init tegra_macallan_init(void)
 #ifdef CONFIG_TEGRA_WDT_RECOVERY
 	tegra_wdt_recovery_init();
 #endif
-	tegra_serial_debug_init(TEGRA_UARTD_BASE, INT_WDT_CPU, NULL, -1, -1);
 	macallan_sensors_init();
 	macallan_soctherm_init();
 	tegra_register_fuse();

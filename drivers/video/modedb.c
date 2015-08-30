@@ -1445,9 +1445,9 @@ const struct fb_videomode *fb_find_nearest_mode(const struct fb_videomode *mode,
 				if(diff_pixclock > d){
 					diff_pixclock = d;
 					best = cmode;
-                                        printk("modedb %s: cmode: %d X %d, refresh= %d, pixclock= %d \n",
-                                                        __func__ ,cmode->xres, cmode->yres,
-                                                        cmode->refresh, cmode->pixclock);
+					printk("modedb %s: cmode: %d X %d, refresh= %d, pixclock= %d \n",
+							__func__ ,cmode->xres, cmode->yres,
+							cmode->refresh, cmode->pixclock);
 				}
 			}
 		}

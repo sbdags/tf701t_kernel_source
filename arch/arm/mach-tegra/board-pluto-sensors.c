@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-pluto-sensors.c
  *
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -108,7 +108,7 @@ static struct max77665_f_platform_data pluto_max77665_flash_pdata = {
 		/* set to true only when using the torch strobe input
 		 * to trigger the flash.
 		 */
-		.flash_on_torch         = true,
+		.flash_on_torch         = false,
 		/* use ONE-SHOOT flash mode - flash triggered at the
 		 * raising edge of strobe or strobe signal.
 		 */
@@ -434,9 +434,9 @@ static int pluto_dw9718_detect(void *buf, size_t size)
 static struct nvc_focus_cap dw9718_cap = {
 	.settle_time = 30,
 	.slew_rate = 0x3A200C,
-	.focus_macro = 700,
-	.focus_infinity = 360,
-	.focus_hyper = 360,
+	.focus_macro = 450,
+	.focus_infinity = 200,
+	.focus_hyper = 200,
 };
 
 static struct dw9718_platform_data pluto_dw9718_pdata = {

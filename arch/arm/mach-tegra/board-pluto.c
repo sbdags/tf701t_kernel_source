@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-pluto.c
  *
- * Copyright (c) 2012-2013, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -68,7 +68,6 @@
 #include <asm/mach/arch.h>
 #include <mach/usb_phy.h>
 #include <mach/gpio-tegra.h>
-#include <mach/tegra_fiq_debugger.h>
 #include <mach/tegra-bb-power.h>
 #include <linux/platform_data/tegra_usb_modem_power.h>
 #include <mach/hardware.h>
@@ -754,7 +753,7 @@ static struct gpio modem_gpios[] = { /* i500 modem */
 };
 
 static struct gpio modem2_gpios[] = {
-	{MDM2_PWR_ON, GPIOF_OUT_INIT_LOW, "MODEM2 PWR ON"},
+	{MDM2_PWR_ON, GPIOF_OUT_INIT_HIGH, "MODEM2 PWR ON"},
 	{MDM2_RST, GPIOF_OUT_INIT_LOW, "MODEM2 RESET"},
 };
 
@@ -948,7 +947,7 @@ static struct platform_device icera_baseband_device = {
 static void baseband2_start(void)
 {
 	pr_info("%s\n", __func__);
-	gpio_set_value(MDM2_PWR_ON, 1);
+	gpio_set_value(MDM2_RST, 1);
 }
 
 static void baseband2_reset(void)
@@ -1071,6 +1070,13 @@ static void pluto_modem_init(void)
 		}
 		break;
 	case TEGRA_BB_I500SWD: /* i500 SWD HSIC */
+		if ((board_info.board_id == BOARD_E1580) &&
+			(board_info.fab == BOARD_FAB_A02)) {
+			pr_info(
+"%s: Pluto A02: replace MDM2_PWR_ON with MDM2_PWR_ON_FOR_PLUTO_A02\n",
+				__func__);
+			modem2_gpios[0].gpio = MDM2_PWR_ON_FOR_PLUTO_A02;
+		}
 		if (!(usb_port_owner_info & HSIC2_PORT_OWNER_XUSB)) {
 			platform_device_register(&icera_baseband2_device);
 		}
@@ -1294,7 +1300,6 @@ static void __init tegra_pluto_init(void)
 	tegra_wdt_recovery_init();
 #endif
 	pluto_sensors_init();
-	tegra_serial_debug_init(TEGRA_UARTD_BASE, INT_WDT_CPU, NULL, -1, -1);
 	pluto_soctherm_init();
 	tegra_register_fuse();
 	pluto_sysedp_core_init();

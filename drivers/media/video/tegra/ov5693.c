@@ -47,6 +47,12 @@
 #define OV5693_LENS_VIEW_ANGLE_V	60000	/* _INT2FLOAT_DIVISOR */
 #define OV5693_OTP_BUF_SIZE		16
 
+#define ASUS_BYPASS_OV5693_FUSE_ID
+
+#ifndef ASUS_BYPASS_OV5693_FUSE_ID
+#define	OV5693_FUSE_ID_SIZE		8
+#endif
+
 static struct nvc_gpio_init ov5693_gpio[] = {
 	{ OV5693_GPIO_TYPE_PWRDN, GPIOF_OUT_INIT_LOW, "pwrdn", false, true, },
 };
@@ -67,7 +73,11 @@ struct ov5693_info {
 	unsigned test_pattern;
 	struct nvc_imager_static_nvc sdata;
 	u8 bin_en;
+#ifdef ASUS_BYPASS_OV5693_FUSE_ID
 	struct ov5693_fuseid fuseid;
+#else
+	struct nvc_fuseid fuseid;
+#endif
 	struct regmap *regmap;
 	struct regulator *ext_vcm_vdd;
 	struct ov5693_cal_data cal;
@@ -1134,7 +1144,7 @@ static const struct ov5693_reg ov5693_1280x720_120fps_i2c[] = {
 };
 
 static const struct ov5693_reg ov5693_640x480_60fps_i2c[] = {
-	{OV5693_TABLE_RESET, 0x0},/*, 0xIncluding, 0xsw, 0xreset, 0x*/
+	{OV5693_TABLE_RESET, 0x0}, /* Including sw reset */
 	{0x0103, 0x01},
 	{0x3001, 0x0a},
 	{0x3002, 0x80},
@@ -3150,7 +3160,6 @@ ov5693_mode_wr_err:
 	return err;
 }
 
-#define ASUS_BYPASS_OV5693_FUSE_ID
 static int ov5693_get_fuse_id(struct ov5693_info *info)
 {
 #ifdef ASUS_BYPASS_OV5693_FUSE_ID
@@ -3159,13 +3168,21 @@ static int ov5693_get_fuse_id(struct ov5693_info *info)
 	 * calibration only. */
 	info->fuseid.id[0] = 0;
 	info->fuseid.id[1] = 0;
-#else
-	ov5693_i2c_rd8(info, 0x300A, &info->fuseid.id[0]);
-	ov5693_i2c_rd8(info, 0x300B, &info->fuseid.id[1]);
-#endif
+
 	info->fuseid.size = 2;
 	dev_dbg(&info->i2c_client->dev, "ov5693 fuse_id: %x,%x\n",
 		info->fuseid.id[0], info->fuseid.id[1]);
+#else
+	int i;
+	regmap_write(info->regmap, 0x3D84, 0xC0);
+	regmap_write(info->regmap, 0x3D81, 0x40);
+	for (i = 0; i < OV5693_FUSE_ID_SIZE; i++) {
+		ov5693_i2c_rd8(info, 0x3D00 + i, &info->fuseid.data[i]);
+		dev_dbg(&info->i2c_client->dev, "ov5693 fuse_id byte %d:\t0x%0x\n",
+				i, info->fuseid.data[i]);
+	}
+	info->fuseid.size = OV5693_FUSE_ID_SIZE;
+#endif
 	return 0;
 }
 

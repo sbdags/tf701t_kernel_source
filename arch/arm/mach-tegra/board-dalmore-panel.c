@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-dalmore-panel.c
  *
- * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,8 +42,6 @@
 #include "common.h"
 #include "tegra11_host1x_devices.h"
 
-#define PRIMARY_DISP_HDMI 0
-
 struct platform_device * __init dalmore_host1x_init(void)
 {
 	struct platform_device *pdev = NULL;
@@ -67,7 +65,7 @@ static struct regulator *dalmore_hdmi_reg;
 static struct regulator *dalmore_hdmi_pll;
 static struct regulator *dalmore_hdmi_vddio;
 
-#if !PRIMARY_DISP_HDMI
+#ifndef CONFIG_TEGRA_HDMI_PRIMARY
 static struct resource dalmore_disp1_resources[] = {
 	{
 		.name	= "irq",
@@ -117,7 +115,7 @@ static struct resource dalmore_disp1_resources[] = {
 static struct resource dalmore_disp2_resources[] = {
 	{
 		.name	= "irq",
-#if PRIMARY_DISP_HDMI
+#ifdef CONFIG_TEGRA_HDMI_PRIMARY
 		.start	= INT_DISPLAY_GENERAL,
 		.end	= INT_DISPLAY_GENERAL,
 #else
@@ -128,7 +126,7 @@ static struct resource dalmore_disp2_resources[] = {
 	},
 	{
 		.name	= "regs",
-#if PRIMARY_DISP_HDMI
+#ifdef CONFIG_TEGRA_HDMI_PRIMARY
 		.start	= TEGRA_DISPLAY_BASE,
 		.end	= TEGRA_DISPLAY_BASE + TEGRA_DISPLAY_SIZE - 1,
 #else
@@ -151,7 +149,7 @@ static struct resource dalmore_disp2_resources[] = {
 	},
 };
 
-#if !PRIMARY_DISP_HDMI
+#ifndef CONFIG_TEGRA_HDMI_PRIMARY
 static struct tegra_dc_sd_settings sd_settings;
 
 static struct tegra_dc_out dalmore_disp1_out = {
@@ -337,7 +335,7 @@ static struct tegra_dc_out dalmore_disp2_out = {
 	.hotplug_report	= dalmore_hdmi_hotplug_report,
 };
 
-#if !PRIMARY_DISP_HDMI
+#ifndef CONFIG_TEGRA_HDMI_PRIMARY
 static struct tegra_fb_data dalmore_disp1_fb_data = {
 	.win		= 0,
 	.bits_per_pixel = 32,
@@ -364,7 +362,6 @@ static struct tegra_fb_data dalmore_disp2_fb_data = {
 };
 
 static struct tegra_dc_platform_data dalmore_disp2_pdata = {
-	.flags		= TEGRA_DC_FLAG_ENABLED,
 	.default_out	= &dalmore_disp2_out,
 	.fb		= &dalmore_disp2_fb_data,
 	.emc_clk_rate	= 300000000,
@@ -372,7 +369,7 @@ static struct tegra_dc_platform_data dalmore_disp2_pdata = {
 
 static struct platform_device dalmore_disp2_device = {
 	.name		= "tegradc",
-#if PRIMARY_DISP_HDMI
+#ifdef CONFIG_TEGRA_HDMI_PRIMARY
 	.id		= 0,
 #else
 	.id		= 1,
@@ -384,7 +381,7 @@ static struct platform_device dalmore_disp2_device = {
 	},
 };
 
-#if !PRIMARY_DISP_HDMI
+#ifndef CONFIG_TEGRA_HDMI_PRIMARY
 static struct platform_device dalmore_disp1_device = {
 	.name		= "tegradc",
 	.id		= 0,
@@ -432,7 +429,7 @@ static struct platform_device dalmore_nvmap_device = {
 	},
 };
 
-#if !PRIMARY_DISP_HDMI
+#ifndef CONFIG_TEGRA_HDMI_PRIMARY
 static struct tegra_dc_sd_settings dalmore_sd_settings = {
 	.enable = 1, /* enabled by default. */
 	.use_auto_pwm = false,
@@ -538,7 +535,7 @@ int __init dalmore_panel_init(void)
 	struct resource __maybe_unused *res;
 	struct platform_device *phost1x;
 
-#if !PRIMARY_DISP_HDMI
+#ifndef CONFIG_TEGRA_HDMI_PRIMARY
 	sd_settings = dalmore_sd_settings;
 
 	dalmore_panel_select();
@@ -566,7 +563,7 @@ int __init dalmore_panel_init(void)
 	gpio_request(dalmore_hdmi_hpd, "hdmi_hpd");
 	gpio_direction_input(dalmore_hdmi_hpd);
 
-#if !PRIMARY_DISP_HDMI
+#ifndef CONFIG_TEGRA_HDMI_PRIMARY
 	res = platform_get_resource_byname(&dalmore_disp1_device,
 					 IORESOURCE_MEM, "fbmem");
 	res->start = tegra_fb_start;
@@ -582,7 +579,7 @@ int __init dalmore_panel_init(void)
 		__tegra_clear_framebuffer(&dalmore_nvmap_device,
 					  tegra_fb_start, tegra_fb_size);
 
-#if !PRIMARY_DISP_HDMI
+#ifndef CONFIG_TEGRA_HDMI_PRIMARY
 	dalmore_disp1_device.dev.parent = &phost1x->dev;
 	err = platform_device_register(&dalmore_disp1_device);
 	if (err) {

@@ -520,7 +520,7 @@ dhd_doiovar(dhd_pub_t *dhd_pub, const bcm_iovar_t *vi, uint32 actionid, const ch
 
 	case IOV_GVAL(IOV_BUS_TYPE):
 		/* The dhd application queries the driver to check if its usb or sdio.  */
-#ifdef BCM43XXUSB
+#ifdef BCMDHDUSB
 		int_val = BUS_TYPE_USB;
 #endif
 		int_val = BUS_TYPE_SDIO;

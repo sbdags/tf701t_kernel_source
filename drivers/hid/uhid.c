@@ -27,6 +27,8 @@
 #define UHID_NAME	"uhid"
 #define UHID_BUFSIZE	32
 
+extern u8 mouse_dock_enable_flag;
+
 struct uhid_device {
 	struct mutex devlock;
 	bool running;
@@ -105,12 +107,18 @@ static int uhid_hid_open(struct hid_device *hid)
 {
 	struct uhid_device *uhid = hid->driver_data;
 
+	printk("FUNCTION:%s\n",__func__);
+	mouse_dock_enable_flag = mouse_dock_enable_flag | 0x4;
+
 	return uhid_queue_event(uhid, UHID_OPEN);
 }
 
 static void uhid_hid_close(struct hid_device *hid)
 {
 	struct uhid_device *uhid = hid->driver_data;
+
+	printk("FUNCTION:%s\n",__func__);
+	mouse_dock_enable_flag = mouse_dock_enable_flag & 0xB;
 
 	uhid_queue_event(uhid, UHID_CLOSE);
 }

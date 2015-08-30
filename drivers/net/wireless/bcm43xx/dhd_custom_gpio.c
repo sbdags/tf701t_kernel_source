@@ -291,6 +291,7 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"PK", "XY", 7},       /* Universal if Country code is PAKISTAN */
 #endif
 #ifdef BCM4334_CHIP
+	{"ID", "ID", 1},
 	{"RU", "RU", 5},
 	{"SG", "SG", 4},
 	{"US", "US", 46}

@@ -40,6 +40,7 @@
 
 /* 5 seconds of Min CPU configurations during resume */
 #define DEFAULT_RESUME_CPU_TIMEOUT	5000000
+extern u8 mouse_dock_enable_flag;
 
 struct bluedroid_pm_data {
 	int gpio_reset;
@@ -90,6 +91,9 @@ static int bluedroid_pm_rfkill_set_power(void *data, bool blocked)
 		if (bluedroid_pm->ext_wake)
 			wake_unlock(&bluedroid_pm->wake_lock);
 		pm_qos_remove_request(&bluedroid_pm->resume_cpu_freq_req);
+
+		printk("FUNCTION:%s\n",__func__);
+		mouse_dock_enable_flag = mouse_dock_enable_flag & 0xB;
 	} else {
 		if (bluedroid_pm->vdd_3v3)
 			regulator_enable(bluedroid_pm->vdd_3v3);

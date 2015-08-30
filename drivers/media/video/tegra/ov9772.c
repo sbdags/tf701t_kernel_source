@@ -1115,6 +1115,7 @@ ov9772_poweron_skip:
 		err |= ov9772_i2c_wr8(info, 0x3002, 0x18); /*avoid GPIO leak */
 		ov9772_gpio_pwrdn(info, 1); /* PWRDN on for standby */
 	} else {
+		ov9772_gpio_pwrdn(info, 0); /* PWRDN off to access I2C */
 		err |= ov9772_i2c_wr8(info, 0x3002, 0x19);
 		err |= ov9772_i2c_wr8(info, 0x3025, 0x00); /* out of standby */
 		err |= ov9772_i2c_wr8(info, 0x4815, 0x20); /* out of standby */

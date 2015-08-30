@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-macallan-panel.c
  *
- * Copyright (c) 2011-2013, NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2011-2014, NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@
 #include <mach/irqs.h>
 #include <mach/iomap.h>
 #include <mach/dc.h>
+#include <mach/pinmux.h>
+#include <mach/pinmux-t11.h>
 
 #include <asm/mach-types.h>
 
@@ -225,6 +227,21 @@ static int macallan_hdmi_hotplug_init(struct device *dev)
 	return 0;
 }
 
+static void macallan_hdmi_hotplug_report(bool state)
+{
+	if (state) {
+		tegra_pinmux_set_pullupdown(TEGRA_PINGROUP_DDC_SDA,
+						TEGRA_PUPD_PULL_DOWN);
+		tegra_pinmux_set_pullupdown(TEGRA_PINGROUP_DDC_SCL,
+						TEGRA_PUPD_PULL_DOWN);
+	} else {
+		tegra_pinmux_set_pullupdown(TEGRA_PINGROUP_DDC_SDA,
+						TEGRA_PUPD_NORMAL);
+		tegra_pinmux_set_pullupdown(TEGRA_PINGROUP_DDC_SCL,
+						TEGRA_PUPD_NORMAL);
+	}
+}
+
 /* Electrical characteristics for HDMI, all modes must be declared here */
 struct tmds_config macallan_tmds_config[] = {
 	{ /* 480p : 27 MHz and below */
@@ -283,6 +300,7 @@ static struct tegra_dc_out macallan_disp2_out = {
 	.disable	= macallan_hdmi_disable,
 	.postsuspend	= macallan_hdmi_postsuspend,
 	.hotplug_init	= macallan_hdmi_hotplug_init,
+	.hotplug_report	= macallan_hdmi_hotplug_report,
 };
 
 static struct tegra_fb_data macallan_disp1_fb_data = {
@@ -310,7 +328,6 @@ static struct tegra_fb_data macallan_disp2_fb_data = {
 };
 
 static struct tegra_dc_platform_data macallan_disp2_pdata = {
-	.flags		= TEGRA_DC_FLAG_ENABLED,
 	.default_out	= &macallan_disp2_out,
 	.fb		= &macallan_disp2_fb_data,
 	.emc_clk_rate	= 300000000,

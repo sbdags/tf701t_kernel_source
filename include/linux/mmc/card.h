@@ -288,6 +288,7 @@ struct mmc_card {
 	struct dentry		*debugfs_root;
 	struct mmc_part	part[MMC_NUM_PHY_PARTITION]; /* physical partitions */
 	unsigned int    nr_parts;
+	unsigned int	mmc_total_size;
 
 	struct timer_list	timer;
 	struct work_struct	bkops;

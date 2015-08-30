@@ -57,7 +57,12 @@ extern bool  bcmsdh_fatal_error(void *sdh);
 #define DHDSDIO_MEM_DUMP_FNAME         "mem_dump"
 #endif
 
+#ifdef BCM4334X_MCC_ENABLE
+#define QLEN		1024	/* bulk rx and tx queue lengths */
+#else
 #define QLEN		256	/* bulk rx and tx queue lengths */
+#endif /* BCM4334X_MCC_ENABLE */
+
 #define FCHI		(QLEN - 10)
 #define FCLOW		(FCHI / 2)
 #define PRIOMASK	7
@@ -75,7 +80,12 @@ extern bool  bcmsdh_fatal_error(void *sdh);
 
 #define MEMBLOCK	2048		/* Block size used for downloading of dongle image */
 #define MAX_NVRAMBUF_SIZE	4096	/* max nvram buf size */
+
+#ifdef BCM4334X_MCC_ENABLE
+#define MAX_DATA_BUF	(64 * 1024)	/* Must be large enough to hold biggest possible glom */
+#else
 #define MAX_DATA_BUF	(32 * 1024)	/* Must be large enough to hold biggest possible glom */
+#endif /* BCM4334X_MCC_ENABLE */
 
 #ifndef DHD_FIRSTREAD
 #define DHD_FIRSTREAD   32
@@ -389,7 +399,12 @@ uint dhd_txminmax = DHD_TXMINMAX;
 int dhd_dongle_ramsize;
 
 uint dhd_doflow = TRUE;
+
+#ifdef BCM4334X_MCC_ENABLE
+uint dhd_dpcpoll = TRUE;
+#else
 uint dhd_dpcpoll = FALSE;
+#endif /* BCM4334X_MCC_ENABLE */
 
 module_param(dhd_doflow, uint, 0644);
 module_param(dhd_dpcpoll, uint, 0644);
@@ -2137,7 +2152,7 @@ dhd_bus_txdata(struct dhd_bus *bus, void *pkt)
 	for (i = 0; i < (datalen - 4); i++) {
 		DHD_ERROR(("%02X ", dump_data[i]));
 		if ((i & 15) == 15)
-			printf("\n");
+			printk("\n");
 	}
 	DHD_ERROR(("\n"));
 
@@ -2267,6 +2282,10 @@ dhdsdio_sendfromq(dhd_bus_t *bus, uint maxframes)
 	uint8 glom_cnt;
 #endif
 
+#ifdef BCM4334X_MCC_ENABLE
+	uint prec;
+#endif /* BCM4334X_MCC_ENABLE */
+
 	dhd_pub_t *dhd = bus->dhd;
 	sdpcmd_regs_t *regs = bus->regs;
 
@@ -2278,6 +2297,23 @@ dhdsdio_sendfromq(dhd_bus_t *bus, uint maxframes)
 	}
 
 	tx_prec_map = ~bus->flowcontrol;
+
+#ifdef BCM4334X_MCC_ENABLE
+	DHD_BTA(("dhdsdio_sendfromq 0x%x\n", bus->dhd->mchan_flowctrl));
+	/* check if we are okay to transmit */
+	if ((bus->dhd->mchan_flowctrl & 0x1) == 0) {
+		prec = 1 << PRIO2PREC(PRIO_8021D_BE);
+		tx_prec_map &= ~prec;
+		DHD_BTA(("dlsable idx 0, prec %d\n", prec));
+	}
+
+	/* check if we are okay to transmit */
+	if ((bus->dhd->mchan_flowctrl & 0x2) == 0) {
+		prec = 1 << PRIO2PREC(PRIO_8021D_VI);
+		tx_prec_map &= ~prec;
+		DHD_BTA(("dlsable idx 1, prec %d\n", prec));
+	}
+#endif /* BCM4334X_MCC_ENABLE */
 
 	/* Send frames until the limit or some other event */
 	for (cnt = 0; (cnt < maxframes) && DATAOK(bus); cnt++) {
@@ -2339,7 +2375,13 @@ dhdsdio_sendfromq(dhd_bus_t *bus, uint maxframes)
 			dhd_os_sdunlock_txq(bus->dhd);
 			break;
 		}
+
+#ifdef BCM4334X_MCC_ENABLE
+		DHD_BTA(("prec out = %d\n", prec_out));
+#else
 		txpktqlen = pktq_len(&bus->txq);
+#endif /* BCM4334X_MCC_ENABLE */
+
 		dhd_os_sdunlock_txq(bus->dhd);
 		datalen = PKTLEN(bus->dhd->osh, pkt) - SDPCM_HDRLEN;
 
@@ -2371,6 +2413,12 @@ dhdsdio_sendfromq(dhd_bus_t *bus, uint maxframes)
 				bus->ipend = TRUE;
 		}
 	}
+
+#ifdef BCM4334X_MCC_ENABLE
+	dhd_os_sdlock_txq(bus->dhd);
+	txpktqlen = pktq_len(&bus->txq);
+	dhd_os_sdunlock_txq(bus->dhd);
+#endif /* BCM4334X_MCC_ENABLE */
 
 	/* Deflow-control stack if needed */
 	if (dhd_doflow && dhd->up && (dhd->busstate == DHD_BUS_DATA) &&
@@ -5319,6 +5367,9 @@ dhdsdio_readframes(dhd_bus_t *bus, uint maxframes, bool *finished)
 	uint16 len, check;	/* Extracted hardware header fields */
 	uint8 chan, seq, doff;	/* Extracted software header fields */
 	uint8 fcbits;		/* Extracted fcbits from software header */
+#ifdef BCM4334X_MCC_ENABLE
+	uint8 mchan_fcbits;
+#endif /* BCM4334X_MCC_ENABLE */
 	uint8 delta;
 
 	void *pkt;	/* Packet for event or data frames */
@@ -5571,6 +5622,11 @@ dhdsdio_readframes(dhd_bus_t *bus, uint maxframes, bool *finished)
 			/* Handle Flow Control */
 			fcbits = SDPCM_FCMASK_VALUE(&bus->rxhdr[SDPCM_FRAMETAG_LEN]);
 
+#ifdef BCM4334X_MCC_ENABLE
+			mchan_fcbits = SDPCM_UNUSED_VALUE(&bus->rxhdr[SDPCM_FRAMETAG_LEN]);
+			dhd_mchan_ifctrl(bus->dhd, mchan_fcbits);
+#endif /* BCM4334X_MCC_ENABLE */
+
 			delta = 0;
 			if (~bus->flowcontrol & fcbits) {
 				bus->fc_xoff++;
@@ -5728,6 +5784,11 @@ dhdsdio_readframes(dhd_bus_t *bus, uint maxframes, bool *finished)
 
 		/* Handle Flow Control */
 		fcbits = SDPCM_FCMASK_VALUE(&bus->rxhdr[SDPCM_FRAMETAG_LEN]);
+
+#ifdef BCM4334X_MCC_ENABLE
+		mchan_fcbits = SDPCM_UNUSED_VALUE(&bus->rxhdr[SDPCM_FRAMETAG_LEN]);
+		dhd_mchan_ifctrl(bus->dhd, mchan_fcbits);
+#endif /* BCM4334X_MCC_ENABLE */
 
 		delta = 0;
 		if (~bus->flowcontrol & fcbits) {
@@ -7016,6 +7077,7 @@ dhdsdio_probe(uint16 venid, uint16 devid, uint16 bus_no, uint16 slot,
 		case BCM4319_D11N5G_ID:			/* 4319 802.11n5g id */
 			DHD_INFO(("%s: found 4319 Dongle\n", __FUNCTION__));
 			break;
+		case BCM43340_CHIP_ID:
 		case BCM43341_CHIP_ID:
 			DHD_INFO(("%s: found 43340/43341 Dongle\n", __FUNCTION__));
 			break;
@@ -8233,7 +8295,7 @@ _dhdsdio_download_firmware(struct dhd_bus *bus)
 	/* External image takes precedence if specified */
 	if ((bus->fw_path != NULL) && (bus->fw_path[0] != '\0')) {
 		/* Assign correct chip id*/
-		if (bus->cl_devid == 0xa94d) {
+		if ((bus->cl_devid == 0xa94d) || (bus->cl_devid == 0xa94c)) {
 			strcpy(chipid, "43341");
 		} else {
 			strcpy(chipid, "4324");

@@ -34,10 +34,10 @@
 #include <linux/wakelock.h>
 #include <asm/mach-types.h>
 #include <mach/board_asustek.h>
+#include "../../arch/arm/mach-tegra/cpu-tegra.h"
 #include "../../arch/arm/mach-tegra/gpio-names.h"
 #include "../../arch/arm/mach-tegra/wakeups-t11x.h"
 #include "../usb/gadget/tegra_udc.h"
-#include "../../arch/arm/mach-tegra/cpu-tegra.h"
 //#include "tegra_udc.h"
 //#include <mach/board-cardhu-misc.h>
 
@@ -601,6 +601,7 @@ static int get_battery_capacity_in_percent(union power_supply_propval *val,
 		{
 			low_battery_flag = 0;
 		}
+
 	}else{
 		do{
 			EC_return_value = asuspec_battery_monitor("voltage", which_battery);
@@ -626,15 +627,15 @@ static int get_battery_capacity_in_percent(union power_supply_propval *val,
 
 		if(val->intval < 6)
 			val->intval = 6;
+	}
 
-		if(val->intval <= 20 && which_battery == pad_device_battery)
-		{
-			low_battery_flag = 1;
-		}
-		else if(val->intval > 20 && which_battery == pad_device_battery)
-		{
-			low_battery_flag = 0;
-		}
+	if(val->intval <= 20 && which_battery == pad_device_battery)
+	{
+		low_battery_flag = 1;
+	}
+	else if(val->intval > 20 && which_battery == pad_device_battery)
+	{
+		low_battery_flag = 0;
 	}
 
 	if(which_battery == pad_device_battery)
@@ -645,8 +646,6 @@ static int get_battery_capacity_in_percent(union power_supply_propval *val,
 
 	return 0;
 }
-
-
 
 static int get_battery_time_to_full(union power_supply_propval *val, enum which_battery_enum which_battery)
 {
@@ -2379,14 +2378,14 @@ static int pad_battery_by_EC_probe(struct i2c_client *client,	const struct i2c_d
 
 	for_udc_call_me_back_if_cable_type_change(NULL, query_cable_status(), &client->dev);
 
-	if(machine_is_mozart()){
-		if(!image_is_user){
-			printk("it's not user image\n");
-			queue_delayed_work(pad_battery_by_EC_workqueue,
-				&pad_battery->check_pad_gaugeIC_firmware_is_updated, 10*HZ);
-		} else
+        if(machine_is_mozart()){
+	    if(!image_is_user){
+	        printk("it's not user image\n");
+		queue_delayed_work(pad_battery_by_EC_workqueue,
+			&pad_battery->check_pad_gaugeIC_firmware_is_updated, 10*HZ);
+	    } else
 		printk("it's user image, so assume gaugeIC is update:%d\n", pad_gaugeIC_firmware_is_updated);
-	}
+        }
 
 	queue_delayed_work(pad_battery_by_EC_workqueue,
 		&pad_battery->battery_status_reupdate_at_booting, 14*HZ);
@@ -2416,6 +2415,21 @@ static int pad_battery_by_EC_remove(struct i2c_client *client)
 #if defined (CONFIG_PM)
 static int pad_battery_by_EC_suspend(struct i2c_client *client, pm_message_t state)
 {
+	hw_rev revision = asustek_get_hw_rev();
+
+	// Disable USB-HUB current by GPIO_PBB5.
+	if (machine_is_haydn()) {
+		switch (revision) {
+		case HW_REV_A: break;
+		case HW_REV_C: break;
+		case HW_REV_E: break;
+		default:
+			printk(KERN_INFO "P1802 USB-HUB Power off\n");
+			gpio_set_value(TEGRA_GPIO_PBB5, 0);
+			break;
+		}
+	}
+
 	printk("pad battery by EC suspend+\n");
 	cancel_delayed_work_sync(&pad_battery->battery_status_polling_work);
 	flush_workqueue(pad_battery_by_EC_workqueue);

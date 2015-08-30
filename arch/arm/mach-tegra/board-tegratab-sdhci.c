@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-tegratab-sdhci.c
  *
- * Copyright (c) 2013, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2013-2014, NVIDIA CORPORATION. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -36,7 +36,9 @@
 #include "board.h"
 #include "board-tegratab.h"
 #include "dvfs.h"
+#include "fuse.h"
 
+#define FUSE_CORE_SPEEDO_0	0x134
 #define TEGRATAB_SD_CD	TEGRA_GPIO_PV2
 #define TEGRATAB_SD_WP	TEGRA_GPIO_PQ4
 #define TEGRATAB_WLAN_PWR	TEGRA_GPIO_PCC5
@@ -164,6 +166,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 	.uhs_mask = MMC_UHS_MASK_DDR50,
 	.edp_support = true,
 	.edp_states = {966, 0},
+	.power_off_rail = true,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
@@ -172,7 +175,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.power_gpio = -1,
 	.is_8bit = 1,
 	.tap_delay = 0x5,
-	.trim_delay = 0xA,
+	.trim_delay = 0x3,
 	.ddr_clk_limit = 41000000,
 	.max_clk_limit = 156000000,
 	.mmc_data = {
@@ -266,7 +269,7 @@ static int __init tegratab_wifi_init(void)
 	rc = gpio_request(TEGRATAB_WLAN_RST, "wlan_rst");
 	if (rc)
 		pr_err("WLAN_RST gpio request failed:%d\n", rc);
-	rc = gpio_request(TEGRATAB_WLAN_WOW, "bcmsdh_sdmmc");
+	rc = gpio_request(TEGRATAB_WLAN_WOW, "wlan_wow");
 	if (rc)
 		pr_err("WLAN_WOW gpio request failed:%d\n", rc);
 
@@ -280,7 +283,7 @@ static int __init tegratab_wifi_init(void)
 	if (rc)
 		pr_err("WLAN_WOW gpio direction configuration failed:%d\n", rc);
 	tegratab_wl12xx_wlan_data.irq = gpio_to_irq(TEGRATAB_WLAN_WOW);
-		wl12xx_set_platform_data(&tegratab_wl12xx_wlan_data);
+	wl12xx_set_platform_data(&tegratab_wl12xx_wlan_data);
 	return 0;
 }
 
@@ -304,6 +307,8 @@ int __init tegratab_sdhci_init(void)
 	int min_vcore_override_mv;
 	int boot_vcore_mv;
 	struct board_info board_info;
+	int speedo;
+
 	nominal_core_mv =
 		tegra_dvfs_rail_get_nominal_millivolts(tegra_core_rail);
 	if (nominal_core_mv) {
@@ -327,6 +332,11 @@ int __init tegratab_sdhci_init(void)
 		tegra_sdhci_platform_data2.boot_vcore_mv = boot_vcore_mv;
 		tegra_sdhci_platform_data3.boot_vcore_mv = boot_vcore_mv;
 	}
+
+	speedo = tegra_fuse_readl(FUSE_CORE_SPEEDO_0);
+	tegra_sdhci_platform_data0.cpu_speedo = speedo;
+	tegra_sdhci_platform_data2.cpu_speedo = speedo;
+	tegra_sdhci_platform_data3.cpu_speedo = speedo;
 
 	tegra_get_board_info(&board_info);
 	if (board_info.board_id == BOARD_P1640)

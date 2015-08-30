@@ -133,6 +133,7 @@ config ARCH_TEGRA_11x_SOC
 	select TEGRA_THERMAL_THROTTLE_EXACT_FREQ
 	select ARM_ERRATA_799270
 	select ARM_ERRATA_798181
+	select TEGRA_WDT_FIQ_WAR if !TRUSTED_FOUNDATIONS && TEGRA_FIQ_DEBUGGER
 	help
 	  Support for NVIDIA Tegra 11x family of SoCs, based upon the
 	  ARM Cortex-A15MP CPU
@@ -424,6 +425,25 @@ config TEGRA_FIQ_DEBUGGER
 	help
 	  Enables the FIQ serial debugger on Tegra
 
+config TEGRA_WDT_FIQ_WAR
+	bool "Enable FIQ WAR on Tegra"
+	depends on TEGRA_FIQ_DEBUGGER
+	help
+	  Tegra chip T114 and T124 don't have FIQ connected to GIC. This
+	  option configure GIC group0 generating FIQ only, and let GIC
+	  group1 handle normal IRQs. Note this option can be only enabled
+	  for system running no secure OS, because secure OS use group0
+	  specifically as monitor trap.
+
+config TEGRA_WDT_FIQ_SOFT_HANG_STACK_DUMP
+	bool "Enable Tegra system soft hang stack dump"
+	depends on TEGRA_WDT_FIQ_WAR && TEGRA_WATCHDOG
+	help
+	  This option will generate stack dump for all online CPUs upon
+	  soft hang detection by using the FIQ debugger mechanism even
+	  the IRQ is disabled on the CPU. This option is useful if we
+	  only have one watchdog generating FIQ for all CPUs.
+
 config TEGRA_PTM
 	bool "Enable PTM debugger on Tegra"
 	default n
@@ -532,9 +552,9 @@ config TEGRA_THERMAL_THROTTLE
 	  Also requires enabling a temperature sensor such as NCT1008.
 
 config DEBUG_ASUS
-       bool "For ASUS user-debug build"
-       help
-         Say Y here for user-debug build.
+        bool "For ASUS user-debug build"
+        help
+        Say Y here for user-debug build.
 
 config TEGRA_THERMAL_THROTTLE_EXACT_FREQ
 	bool "Use exact cpu frequency capping when thermal throttling"
@@ -971,4 +991,12 @@ config TEGRA_VDD_CORE_OVERRIDE
 	  When enabled, core rail can be fixed and locked at specified voltage
 	  within override range, and core modules clocks are capped at rates
 	  safe at override level.
+
+config TEGRA_HDMI_PRIMARY
+	bool "Use HDMI as primary display"
+	depends on TEGRA_DC
+	help
+	  Configure system to support HDMI as the primary display.
+	  When enabled, dispA/fb0 will be configured to use HDMI.
+
 endif

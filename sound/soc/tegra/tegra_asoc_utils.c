@@ -2,7 +2,7 @@
  * tegra_asoc_utils.c - Harmony machine ASoC driver
  *
  * Author: Stephen Warren <swarren@nvidia.com>
- * Copyright (c) 2010-12, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2010-2013, NVIDIA CORPORATION.  All rights reserved.
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -33,7 +33,15 @@
 #include "tegra_asoc_utils.h"
 
 int g_is_call_mode;
+int tegra_i2sloopback_func;
 
+static const char * const loopback_function[] = {
+	"Off",
+	"On"
+};
+
+static const struct soc_enum tegra_enum =
+	SOC_ENUM_SINGLE_EXT(2, loopback_function);
 #ifdef CONFIG_SWITCH
 static bool is_switch_registered;
 struct switch_dev *psdev;
@@ -193,6 +201,23 @@ static int tegra_get_dma_addr(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int tegra_get_i2sloopback(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = tegra_i2sloopback_func;
+	return 0;
+}
+
+static int tegra_set_i2sloopback(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	if (tegra_i2sloopback_func == ucontrol->value.integer.value[0])
+		return 0;
+
+	tegra_i2sloopback_func = ucontrol->value.integer.value[0];
+	return 1;
+}
+
 struct snd_kcontrol_new tegra_avp_controls[] = {
 	SOC_SINGLE_EXT("AVP alsa device select", 0, 0, TEGRA_ALSA_MAX_DEVICES, \
 			0, tegra_get_avp_device, tegra_set_avp_device),
@@ -201,6 +226,10 @@ struct snd_kcontrol_new tegra_avp_controls[] = {
 	SOC_SINGLE_EXT("AVP DMA address", 0, 0, 0xFFFFFFFF, \
 			0, tegra_get_dma_addr, tegra_set_dma_addr),
 };
+
+static const struct snd_kcontrol_new tegra_i2s_lpbk_control =
+	SOC_ENUM_EXT("I2S LoopBack", tegra_enum, tegra_get_i2sloopback, \
+			tegra_set_i2sloopback);
 
 static int tegra_set_headset_plug_state(struct snd_kcontrol *kcontrol,
 			      struct snd_ctl_elem_value *ucontrol)
@@ -371,6 +400,12 @@ int tegra_asoc_utils_register_ctls(struct tegra_asoc_utils_data *data)
 		return ret;
 	}
 
+	ret = snd_ctl_add(data->card->snd_card,
+			snd_ctl_new1(&tegra_i2s_lpbk_control, data));
+	if (ret < 0) {
+		dev_err(data->dev, "Can't add i2s loopback control");
+		return ret;
+	}
 	return ret;
 }
 EXPORT_SYMBOL_GPL(tegra_asoc_utils_register_ctls);

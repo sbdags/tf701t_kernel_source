@@ -1,7 +1,7 @@
 /*
  * drivers/video/tegra/dc/dev.c
  *
- * Copyright (c) 2011-2013, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2011-2014, NVIDIA CORPORATION, All rights reserved.
  *
  * Author: Robert Morell <rmorell@nvidia.com>
  * Some code based on fbdev extensions written by:
@@ -411,7 +411,7 @@ static void tegra_dc_ext_flip_worker(struct work_struct *work)
 		wins[nr_win++] = win;
 	}
 
-	if (!skip_flip) {
+	if (ext->dc->enabled && !skip_flip) {
 		tegra_dc_update_windows(wins, nr_win);
 		/* TODO: implement swapinterval here */
 		tegra_dc_sync_windows(wins, nr_win);

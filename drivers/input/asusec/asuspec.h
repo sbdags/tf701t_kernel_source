@@ -10,6 +10,8 @@
 #define TOUCHPAD_MODE                   1       // 0: relative mode, 1: absolute mode
 #define TOUCHPAD_ELAN                   1       // 0: not elan, 1:elantech
 #define BATTERY_DRIVER			1	// 0: battery call back function not enabled
+#define FACTORY_MODE			0
+#define EMC_NOTIFY			1	// 0: battery call back function not enabled
 
 /*
  * Debug Utility

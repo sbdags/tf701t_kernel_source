@@ -338,6 +338,9 @@ typedef struct dhd_pub {
 #if defined(BCMSUP_4WAY_HANDSHAKE) && defined(WLAN_AKM_SUITE_FT_8021X)
 	bool fw_4way_handshake;		/* Whether firmware will to do the 4way handshake. */
 #endif
+#ifdef BCM4334X_MCC_ENABLE
+	uint8 mchan_flowctrl;
+#endif /* BCM4334X_MCC_ENABLE */
 } dhd_pub_t;
 typedef struct dhd_cmn {
 	osl_t *osh;		/* OSL handle */
@@ -409,6 +412,7 @@ extern int dhd_os_wake_lock_rx_timeout_enable(dhd_pub_t *pub, int val);
 extern int dhd_os_wake_lock_ctrl_timeout_enable(dhd_pub_t *pub, int val);
 extern int dhd_os_wd_wake_lock(dhd_pub_t *pub);
 extern int dhd_os_wd_wake_unlock(dhd_pub_t *pub);
+extern int dhd_ap_wake_lock_timeout(dhd_pub_t *pub, int timeout);
 
 inline static void MUTEX_LOCK_SOFTAP_SET_INIT(dhd_pub_t * dhdp)
 {
@@ -519,7 +523,9 @@ extern bool dhd_prec_enq(dhd_pub_t *dhdp, struct pktq *q, void *pkt, int prec);
 
 /* Receive frame for delivery to OS.  Callee disposes of rxp. */
 extern void dhd_rx_frame(dhd_pub_t *dhdp, int ifidx, void *rxp, int numpkt, uint8 chan);
-
+#ifdef BCM4334X_MCC_ENABLE
+extern void dhd_mchan_ifctrl(dhd_pub_t *dhdp, uint8 mchan_ifctrl);
+#endif /* BCM4334X_MCC_ENABLE */
 /* Return pointer to interface name */
 extern char *dhd_ifname(dhd_pub_t *dhdp, int idx);
 
@@ -567,12 +573,22 @@ extern int dhd_keep_alive_onoff(dhd_pub_t *dhd);
 
 
 #ifdef PKT_FILTER_SUPPORT
+#if !defined(BLACKLIST_PKT_FILTER)
 #define DHD_UNICAST_FILTER_NUM		0
 #define DHD_BROADCAST_FILTER_NUM	1
 #define DHD_MULTICAST4_FILTER_NUM	2
 #define DHD_MULTICAST6_FILTER_NUM	3
 #define DHD_MDNS_FILTER_NUM		4
 #define DHD_ARP_FILTER_NUM		5
+#else
+#define DHD_UNICAST_FILTER_NUM		0
+#define DHD_BROADCAST_FILTER_NUM	1
+#define DHD_MULTICAST4_FILTER_NUM	2
+#define DHD_MULTICAST6_FILTER_NUM	3
+#define DHD_MDNS_FILTER_NUM		4
+#define DHD_ARP_FILTER_NUM		5
+#define DHD_NETBIOS_FILTER_NUM		6
+#endif
 extern int 	dhd_os_enable_packet_filter(dhd_pub_t *dhdp, int val);
 extern void dhd_enable_packet_filter(int value, dhd_pub_t *dhd);
 extern int net_os_enable_packet_filter(struct net_device *dev, int val);

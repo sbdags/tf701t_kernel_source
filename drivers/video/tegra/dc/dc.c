@@ -59,8 +59,6 @@
 #include "dev.h"
 #include "nvsd.h"
 
-#include <linux/regulator/consumer.h>
-#include <asm/mach-types.h>
 #include "../gpio-names.h"
 #define TEGRA_CRC_LATCHED_DELAY		34
 
@@ -68,8 +66,6 @@
 #define DC_COM_PIN_OUTPUT_POLARITY3_INIT_VAL	0x0
 /*USB camera power 1.8V*/
 #define EN_1V8_CAM TEGRA_GPIO_PBB4
-
-extern bool tegra_force_lp_mode;
 
 extern bool display_on_flag;
 
@@ -2004,6 +2000,7 @@ static bool _tegra_dc_enable(struct tegra_dc *dc)
 void tegra_dc_enable(struct tegra_dc *dc)
 {
 	mutex_lock(&dc->lock);
+
 	printk("Display check tegra_dc_enable E \n");
 	if (!dc->enabled)
 		dc->enabled = _tegra_dc_enable(dc);
@@ -2618,7 +2615,7 @@ static int tegra_dc_suspend(struct platform_device *ndev, pm_message_t state)
 	mutex_unlock(&dc->lock);
 	synchronize_irq(dc->irq); /* wait for IRQ handlers to finish */
 	if (machine_is_haydn()) {
-		printk("%s:Power off USB Camera",__func__);
+		printk("%s:Power off USB Camera\n",__func__);
 		gpio_set_value(EN_1V8_CAM, 0);
 	}
 	return 0;
@@ -2647,7 +2644,7 @@ static int tegra_dc_resume(struct platform_device *ndev)
 		dc->out_ops->resume(dc);
 	mutex_unlock(&dc->lock);
 	if (machine_is_haydn()) {
-		printk("%s:Power on USB Camera",__func__);
+		printk("%s:Power on USB Camera\n",__func__);
 		gpio_set_value(EN_1V8_CAM, 1);
 	}
 	return 0;

@@ -123,7 +123,8 @@ unsigned long tegra_tsec_size;
 unsigned long tegra_lp0_vec_start;
 unsigned long tegra_lp0_vec_size;
 #ifdef CONFIG_TEGRA_NVDUMPER
-unsigned long nvdumper_reserved;
+unsigned long tegra_nvdumper_start;
+unsigned long tegra_nvdumper_size;
 #endif
 bool tegra_lp0_vec_relocate;
 unsigned long tegra_grhost_aperture = ~0ul;
@@ -147,6 +148,7 @@ static int board_panel_type;
 static enum power_supply_type pow_supply_type = POWER_SUPPLY_TYPE_MAINS;
 static int pwr_i2c_clk = 400;
 static u8 power_config;
+static bool pike_supported;
 
 atomic_t __maybe_unused sd_brightness = ATOMIC_INIT(255);
 EXPORT_SYMBOL(sd_brightness);
@@ -800,7 +802,13 @@ static int __init tegra_nvdumper_arg(char *options)
 {
 	char *p = options;
 
-	nvdumper_reserved = memparse(p, &p);
+	tegra_nvdumper_size = memparse(p, &p);
+	if (*p == '@')
+		tegra_nvdumper_start = memparse(p + 1, &p);
+	if (!tegra_nvdumper_size || !tegra_nvdumper_start) {
+		tegra_nvdumper_size = 0;
+		tegra_nvdumper_start = 0;
+	}
 	return 0;
 }
 early_param("nvdumper_reserved", tegra_nvdumper_arg);
@@ -966,6 +974,21 @@ static int __init tegra_pmu_core_edp(char *options)
 	return 0;
 }
 early_param("core_edp_mv", tegra_pmu_core_edp);
+
+bool is_pike_supported(void)
+{
+	return pike_supported;
+}
+static int __init tegra_pike_support(char *options)
+{
+	char *p = options;
+	int pike_val = memparse(p, &p);
+
+	if (pike_val == 1)
+		pike_supported = true;
+	return 0;
+}
+early_param("pike", tegra_pike_support);
 
 int get_maximum_cpu_current_supported(void)
 {
@@ -1544,11 +1567,14 @@ void __init tegra_reserve(unsigned long carveout_size, unsigned long fb_size,
 		tegra_lp0_vec_relocate = true;
 
 #ifdef CONFIG_TEGRA_NVDUMPER
-	if (nvdumper_reserved) {
-		if (memblock_reserve(nvdumper_reserved, NVDUMPER_RESERVED_SIZE)) {
+	if (tegra_nvdumper_size &&
+		   (tegra_nvdumper_start < memblock_end_of_DRAM())) {
+		if (memblock_reserve(tegra_nvdumper_start,
+					tegra_nvdumper_size)) {
 			pr_err("Failed to reserve nvdumper page %08lx@%08lx\n",
-			       nvdumper_reserved, NVDUMPER_RESERVED_SIZE);
-			nvdumper_reserved = 0;
+			       tegra_nvdumper_size, tegra_nvdumper_start);
+			tegra_nvdumper_start = 0;
+			tegra_nvdumper_size = 0;
 		}
 	}
 #endif
@@ -1641,10 +1667,10 @@ void __init tegra_reserve(unsigned long carveout_size, unsigned long fb_size,
 	}
 
 #ifdef CONFIG_TEGRA_NVDUMPER
-	if (nvdumper_reserved) {
+	if (tegra_nvdumper_size) {
 		pr_info("Nvdumper:               %08lx - %08lx\n",
-			nvdumper_reserved,
-			nvdumper_reserved + NVDUMPER_RESERVED_SIZE - 1);
+			tegra_nvdumper_start,
+			tegra_nvdumper_start + tegra_nvdumper_size - 1);
 	}
 #endif
 #ifdef CONFIG_TEGRA_USE_NCT

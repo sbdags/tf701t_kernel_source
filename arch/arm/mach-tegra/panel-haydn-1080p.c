@@ -313,6 +313,8 @@ static void hdmi_haydn_1080p_dc_out_init(struct tegra_dc_out *dc)
 	dc->modes = haydn_panel_modes;
 	dc->n_modes = ARRAY_SIZE(haydn_panel_modes);
 	dc->depth = 24;
+	dc->width = 408;
+	dc->height = 230;
 	dc->hotplug_init = NULL;
 
 	dc->enable = hdmi_enable;

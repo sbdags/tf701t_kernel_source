@@ -281,9 +281,9 @@ static int pn544_probe(struct i2c_client *client,
 	if (ret)
 		goto err_ven;
 	if (platform_data->firm_gpio) {
-		/* touch:
-		 * marked it duo to firm_gpio occupy touch power TEGRA_GPIO_PH0
-		 */
+	/* touch:
+	 * marked it duo to firm_gpio occupy touch power TEGRA_GPIO_PH0
+	 */
 #if 0
 		ret = gpio_request(platform_data->firm_gpio, "nfc_firm");
 #endif

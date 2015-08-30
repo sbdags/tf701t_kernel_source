@@ -174,7 +174,7 @@ config SND_SOC_TEGRA_TLV320AIC326X
 	  boards using the TI AIC326X codec.
 
 config HEADSET_FUNCTION
-	tristate "Headset detection function"
+        tristate "Headset detection function"
 	default n
 
 config MACH_HAS_SND_SOC_TEGRA_RT5639

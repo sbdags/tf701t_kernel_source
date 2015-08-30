@@ -49,7 +49,7 @@
 #define SYSTEM_BROWSER_MODE	(4)
 #define SYSTEM_MODE_END 		(SYSTEM_BROWSER_MODE + 1)
 
-static int system_mode = 0;
+static  int system_mode = 0;
 unsigned int power_mode_table[SYSTEM_MODE_END] = {1912500, 1708500, 1224000, 1224000, 1224000};
 static unsigned int pwr_cap_limits[4] = {UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX};
 static unsigned int pwr_save = 0;
@@ -68,14 +68,10 @@ static DEFINE_MUTEX(tegra_cpu_lock);
 static bool is_suspended;
 static int suspend_index;
 static unsigned int volt_capped_speed;
-
-extern u64 global_wake_status;
-extern bool tegra_force_lp_mode;
-extern bool low_battery_flag;
-
-bool display_on_flag = 0;
-
 static bool force_policy_max;
+
+extern bool low_battery_flag;
+bool display_on_flag = 0;
 
 static int force_policy_max_set(const char *arg, const struct kernel_param *kp)
 {
@@ -206,6 +202,7 @@ module_param_cb(enable_pwr_save, &tegra_pwr_save_ops, &pwr_save, 0644);
 	}
 	else
 	{
+
 		if((system_mode == SYSTEM_BALANCE_MODE) && (requested_speed > power_mode_table[SYSTEM_BALANCE_MODE]))
 			new_speed = power_mode_table[SYSTEM_BALANCE_MODE];
 		else  if((system_mode == SYSTEM_PWRSAVE_MODE) && (requested_speed > power_mode_table[SYSTEM_PWRSAVE_MODE]))

@@ -90,6 +90,7 @@ static int _regulator_is_enabled(struct regulator_dev *rdev);
 static int _regulator_disable(struct regulator_dev *rdev);
 static int _regulator_enable(struct regulator_dev *rdev);
 static int _regulator_get_enable_time(struct regulator_dev *rdev);
+static int _regulator_get_disable_time(struct regulator_dev *rdev);
 static int _regulator_get_voltage(struct regulator_dev *rdev);
 static int _regulator_get_current_limit(struct regulator_dev *rdev);
 static unsigned int _regulator_get_mode(struct regulator_dev *rdev);
@@ -447,7 +448,7 @@ static ssize_t regulator_state_set(struct device *dev,
 		   struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct regulator_dev *rdev = dev_get_drvdata(dev);
-	int ret;
+	int ret, delay;
 	bool enabled;
 
 	if ((*buf == 'E') || (*buf == 'e'))
@@ -487,10 +488,19 @@ static ssize_t regulator_state_set(struct device *dev,
 			ret = -EINVAL;
 			goto end;
 		}
+		ret = _regulator_get_disable_time(rdev);
+		if (ret >= 0)
+			delay = ret;
 		ret = rdev->desc->ops->disable(rdev);
 		if (ret < 0) {
 			rdev_warn(rdev, "disable() failed: %d\n", ret);
 			goto end;
+		}
+		if (delay >= 1000) {
+			mdelay(delay / 1000);
+			udelay(delay % 1000);
+		} else if (delay) {
+			udelay(delay);
 		}
 	}
 
@@ -1313,6 +1323,13 @@ static int _regulator_get_enable_time(struct regulator_dev *rdev)
 	return rdev->desc->ops->enable_time(rdev);
 }
 
+static int _regulator_get_disable_time(struct regulator_dev *rdev)
+{
+	if (rdev->constraints && rdev->constraints->disable_time)
+		return rdev->constraints->disable_time;
+	return rdev->desc->disable_time;
+}
+
 static struct regulator_dev *regulator_dev_lookup(struct device *dev,
 							 const char *supply)
 {
@@ -1698,6 +1715,7 @@ EXPORT_SYMBOL_GPL(regulator_enable);
 static int _regulator_disable(struct regulator_dev *rdev)
 {
 	int ret = 0;
+	int delay;
 
 	if (WARN(rdev->use_count <= 0,
 		 "unbalanced disables for %s\n", rdev_get_name(rdev)))
@@ -1718,7 +1736,23 @@ static int _regulator_disable(struct regulator_dev *rdev)
 				return ret;
 			}
 
+			ret = _regulator_get_disable_time(rdev);
+			if (ret >= 0) {
+				delay = ret;
+			} else {
+				rdev_warn(rdev, "disable_time() failed: %d\n",
+					   ret);
+				delay = 0;
+			}
+
 			trace_regulator_disable_complete(rdev_get_name(rdev));
+
+			if (delay >= 1000) {
+				mdelay(delay / 1000);
+				udelay(delay % 1000);
+			} else if (delay) {
+				udelay(delay);
+			}
 
 			_notifier_call_chain(rdev, REGULATOR_EVENT_DISABLE,
 					     NULL);

@@ -64,7 +64,6 @@
 #include <asm/mach/arch.h>
 #include <mach/usb_phy.h>
 #include <mach/gpio-tegra.h>
-#include <mach/tegra_fiq_debugger.h>
 #include <mach/hardware.h>
 
 #include "board-touch-raydium.h"
@@ -699,11 +698,15 @@ struct spi_board_info rm31080a_tegratab_spi_board[1] = {
 
 static int __init tegratab_touch_init(void)
 {
-#if defined(CONFIG_TOUCHSCREEN_MAXIM_STI) || \
-	defined(CONFIG_TOUCHSCREEN_MAXIM_STI_MODULE)
 	struct board_info board_info;
 
+	if (get_androidboot_mode_charger())
+		return 0;
+
 	tegra_get_board_info(&board_info);
+
+#if defined(CONFIG_TOUCHSCREEN_MAXIM_STI) || \
+	defined(CONFIG_TOUCHSCREEN_MAXIM_STI_MODULE)
 	if (board_info.board_id == BOARD_P1640) {
 		if (board_info.fab == BOARD_FAB_A00)
 			maxim_sti_spi_board.platform_data = &maxim_sti_pdata;
@@ -804,7 +807,6 @@ static void __init tegra_tegratab_late_init(void)
 #ifdef CONFIG_TEGRA_WDT_RECOVERY
 	tegra_wdt_recovery_init();
 #endif
-	tegra_serial_debug_init(TEGRA_UARTD_BASE, INT_WDT_CPU, NULL, -1, -1);
 	tegratab_sensors_init();
 	tegratab_soctherm_init();
 	tegra_register_fuse();

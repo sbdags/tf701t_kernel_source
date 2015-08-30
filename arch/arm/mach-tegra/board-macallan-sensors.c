@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-macallan-sensors.c
  *
- * Copyright (c) 2013 NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2013-2014 NVIDIA CORPORATION, All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -414,11 +414,10 @@ static struct i2c_board_info front_sensor_i2c2_board_info[] = {
 	},
 };
 
-
 static struct i2c_board_info macallan_i2c0_battery_by_EC_board_info[] = {
-	{
-		I2C_BOARD_INFO("pad_battery_by_EC", 0x0b),
-	},
+        {
+                I2C_BOARD_INFO("pad_battery_by_EC", 0x0b),
+        },
 };
 
 static int macallan_camera_init(void)
@@ -785,30 +784,30 @@ int __init macallan_sensors_init(void)
 
 	tegra_get_board_info(&board_info);
 
-	/* E1545+E1604 has no temp sensor. */
-	if (board_info.board_id != BOARD_E1545) {
-		err = macallan_nct1008_init();
-		if (err) {
-			pr_err("%s: nct1008 register failed.\n", __func__);
-			return err;
-		}
+	err = macallan_nct1008_init();
+	if (err)
+	{
+		pr_err("%s: nct1008 register failed.\n", __func__);
+		return err;
 	}
+
 	if(!machine_is_haydn()) {
 		macallan_camera_init();
 	}
+
 	if(machine_is_haydn()) {
 		kionix_init();
 	} else { // now only machine_is_mozart() goes here
 		mpuirq_init();
 	}
 
-	i2c_register_board_info(0, macallan_i2c0_battery_by_EC_board_info,
-			ARRAY_SIZE(macallan_i2c0_battery_by_EC_board_info));
 
 	if (machine_is_mozart()){
 		i2c_register_board_info(2, macallan_cam_i2c_board_info_als_al3320a,
 				ARRAY_SIZE(macallan_cam_i2c_board_info_als_al3320a));
 	}
 
+	i2c_register_board_info(0, macallan_i2c0_battery_by_EC_board_info,
+			ARRAY_SIZE(macallan_i2c0_battery_by_EC_board_info));
 	return 0;
 }

@@ -38,6 +38,10 @@
 #define USB_PORTSC_LINE_DM_SET (1 << 0)
 #define USB_PORTSC_LINE_DP_SET (1 << 1)
 
+#define USB_USBCMD		0x130
+#define   USB_USBCMD_RS		(1 << 0)
+#define   USB_CMD_RESET	(1<<1)
+
 #define HOSTPC1_DEVLC		0x1b4
 #define HOSTPC1_DEVLC_PHCD		(1 << 22)
 #define HOSTPC1_DEVLC_PTS(x)		(((x) & 0x7) << 29)
@@ -197,6 +201,15 @@
 #define PMC_UTMIP_BIAS_MASTER_CNTRL 0x270
 #define BIAS_MASTER_PROG_VAL		(1 << 1)
 
+#define UTMIP_BIAS_CFG1		0x83c
+#define   UTMIP_BIAS_PDTRK_COUNT(x) (((x) & 0x1f) << 3)
+#define   UTMIP_BIAS_PDTRK_POWERDOWN	(1 << 0)
+#define   UTMIP_BIAS_PDTRK_POWERUP	(1 << 1)
+
+#define UTMIP_BIAS_STS0			0x840
+#define   UTMIP_RCTRL_VAL(x)		(((x) & 0xffff) << 0)
+#define   UTMIP_TCTRL_VAL(x)		(((x) & (0xffff << 16)) >> 16)
+
 #define PMC_UTMIP_MASTER_CONFIG		0x274
 #define UTMIP_PWR(inst)		(1 << (inst))
 
@@ -240,7 +253,8 @@ struct tegra_usb_pmc_ops {
 	void (*setup_pmc_wake_detect)(struct tegra_usb_pmc_data *pmc_data);
 	void (*powerup_pmc_wake_detect)(struct tegra_usb_pmc_data *pmc_data);
 	void (*powerdown_pmc_wake_detect)(struct tegra_usb_pmc_data *pmc_data);
-	void (*disable_pmc_bus_ctrl)(struct tegra_usb_pmc_data *pmc_data);
+	void (*disable_pmc_bus_ctrl)(struct tegra_usb_pmc_data *pmc_data,
+		  int enable_sof);
 	void (*power_down_pmc)(struct tegra_usb_pmc_data *pmc_data);
 };
 
@@ -253,11 +267,12 @@ struct tegra_usb_pmc_data {
 	enum tegra_usb_phy_interface phy_type;
 	enum usb_pmc_port_speed port_speed;
 	struct tegra_usb_pmc_ops *pmc_ops;
-	u32 utmip_rctrl_val;
-	u32 utmip_tctrl_val;
+	void __iomem *usb_base;
 };
 
 void tegra_usb_pmc_init(struct tegra_usb_pmc_data *pmc_data);
+int utmi_phy_set_snps_trking_data(void);
+void utmi_phy_update_trking_data(u32 tctrl, u32 rctrl);
 void tegra_usb_pmc_reg_update(u32 reg_offset, u32 mask, u32 val);
 u32 tegra_usb_pmc_reg_read(u32 reg_offset);
 void tegra_usb_pmc_reg_write(u32 reg_offset, u32 val);

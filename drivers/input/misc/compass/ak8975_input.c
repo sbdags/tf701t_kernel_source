@@ -1,5 +1,5 @@
 /* Copyright (C) 2012 Invensense, Inc.
- * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -1250,6 +1250,13 @@ static int akm_sysfs_create(struct akm_inf *inf)
 	int err;
 
 	err = sysfs_create_group(&inf->idev->dev.kobj, &akm_attr_group);
+	if (err) {
+		dev_err(&inf->i2c->dev, "%s ERR %d\n", __func__, err);
+		return err;
+	}
+	err = nvi_mpu_sysfs_register(&inf->idev->dev.kobj, AKM_NAME);
+	if (err)
+		dev_err(&inf->i2c->dev, "%s ERR %d\n", __func__, err);
 	return err;
 }
 
@@ -1424,6 +1431,12 @@ static struct mpu_platform_data *akm_parse_dt(struct i2c_client *client)
 		return ERR_PTR(-EINVAL);
 	}
 
+	if (of_property_read_u32(np, "sec-slave-id",
+				&pdata->sec_slave_id) < 0) {
+		dev_err(&client->dev, "Cannot read sec-slave-id\n");
+		return ERR_PTR(-EINVAL);
+	}
+
 	return pdata;
 }
 
@@ -1464,6 +1477,11 @@ static int akm_probe(struct i2c_client *client,
 
 	mutex_init(&inf->mutex_data);
 	err = akm_input_create(inf);
+	if (err)
+		goto akm_probe_err;
+
+	if (!inf->initd)
+		err = akm_init_hw(inf);
 	if (err)
 		goto akm_probe_err;
 

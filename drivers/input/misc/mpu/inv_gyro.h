@@ -151,6 +151,8 @@ enum inv_devices {
 	INV_MPU9150,
 	INV_MPU6500,
 	INV_MPU9250,
+	INV_MPU9350,
+	INV_MPU6515,
 	INV_MPU6XXX,
 	INV_NUM_PARTS
 };
@@ -235,7 +237,7 @@ struct inv_chip_config_s {
 	unsigned int fifo_thr;
 	unsigned int  prog_start_addr;
 	unsigned long min_delay_us;
-	long long gyro_start_delay_ns;
+	s64 gyro_start_delay_ns;
 	unsigned int bypass_timeout_ms;
 	unsigned char is_asleep;
 };
@@ -424,6 +426,8 @@ struct inv_gyro_state_s {
 	struct mpu_platform_data plat_data;
 	struct inv_mpu_slave *mpu_slave;
 	struct regulator_bulk_data vreg[2];
+	struct notifier_block nb_vreg[2];
+	s64 vreg_en_ts[2];
 	unsigned char i2c_addr;
 	unsigned char sample_divider;
 	unsigned char fifo_divider;
@@ -438,6 +442,7 @@ struct inv_gyro_state_s {
 	u16 fifo_sample_size;
 	bool shutdown;
 	bool suspend;
+	bool stop_workqueue;
 	bool fifo_reset_3050;
 	bool mot_det_en;
 	s64 fifo_ts;
@@ -449,11 +454,15 @@ struct inv_gyro_state_s {
 	u8 dbg_reg;
 #endif /* DEBUG_SYSFS_INTERFACE */
 	s64 temp_ts;
+	s64 last_1000;
 	s16 temp_val;
 	s16 gyro[3];
 	s16 accl[3];
 	s16 accl_raw[3];
 	u8 buf[NVI_FIFO_SAMPLE_SIZE_MAX * 2]; /* (* 2)=FIFO OVERFLOW OFFSET */
+	bool irq_disabled;
+	unsigned int num_int;
+	struct work_struct work_struct;
 };
 
 /* produces an unique identifier for each device based on the
@@ -572,6 +581,7 @@ struct inv_mpu_slave {
 #define BITS_LPF		(0x07)
 #define BITS_CLK		(0x07)
 #define BIT_RESET               (0x80)
+#define BIT_H_RESET		(0x80)
 #define BIT_SLEEP		(0x40)
 #define BIT_CYCLE               (0x20)
 #define BIT_TEMP_DIS		(0x08)
@@ -588,6 +598,8 @@ struct inv_mpu_slave {
 #define BYTES_PER_SENSOR        (6)
 #define FIFO_THRESHOLD           500
 #define POWER_UP_TIME           (40)
+#define REG_UP_TIME		(5)
+#define POR_MS			(100)
 #define MPU_MEM_BANK_SIZE        (256)
 #define MPL_PROD_KEY(ver, rev) (ver * 100 + rev)
 #define NUM_OF_PROD_REVS (ARRAY_SIZE(prod_rev_map))
@@ -600,6 +612,7 @@ struct inv_mpu_slave {
 #define MPU6500_PRODUCT_REVISION	(1)
 #define MPU6500_MEM_REV_ADDR		(0x17)
 #define MPU9250_ID			(0x71)
+#define MPU6515_ID			(0x74)
 
 #define BIT_PRFTCH_EN                           0x40
 #define BIT_CFG_USER_BANK                       0x20

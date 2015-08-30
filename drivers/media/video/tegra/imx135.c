@@ -280,8 +280,8 @@ imx135_set_mode(struct imx135_info *info, struct imx135_mode *mode)
 		} else if (mode->xres == 2616 && mode->yres == 1472) {
 			sensor_mode = IMX135_MODE_2616X1472_HDR;
 			quality_hdr = 1;
-		} else if (mode->xres == 3896 && mode->yres == 2192) {
-			sensor_mode = IMX135_MODE_3896X2192_HDR;
+		} else if (mode->xres == 3840 && mode->yres == 2160) {
+			sensor_mode = IMX135_MODE_3840X2160_HDR;
 			quality_hdr = 1;
 		} else {
 			pr_err("%s: invalid resolution supplied to set mode %d %d\n",
@@ -292,6 +292,9 @@ imx135_set_mode(struct imx135_info *info, struct imx135_mode *mode)
 		dev_info(&info->i2c_client->dev, "none HDR mode\n");
 		if (mode->xres == 4208 && mode->yres == 3120) {
 			sensor_mode = IMX135_MODE_4208X3120;
+			quality_hdr = 0;
+		} else if (mode->xres == 3840 && mode->yres == 2160) {
+			sensor_mode = IMX135_MODE_3840X2160;
 			quality_hdr = 0;
 		} else if (mode->xres == 2104 && mode->yres == 1560) {
 			sensor_mode = IMX135_MODE_2104X1560;

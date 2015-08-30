@@ -12345,7 +12345,7 @@ static struct tegra11_emc_table haydn_hw_rev_a_hynix_table[] = {
 	},
 };
 
-static struct tegra11_emc_table haydn_hw_rev_c_hynix_table[] = {
+static struct tegra11_emc_table haydn_hw_rev_c_g_hynix_table[] = {
 	{
 		0x42,       /* Rev 4.0.3 */
 		12750,      /* SDRAM frequency */
@@ -16773,7 +16773,7 @@ static struct tegra11_emc_table haydn_hw_rev_a_elpida_table[] = {
 	},
 };
 
-static struct tegra11_emc_table haydn_hw_rev_c_elpida_table[] = {
+static struct tegra11_emc_table haydn_hw_rev_c_g_elpida_table[] = {
 	{
 		0x42,       /* Rev 4.0.3 */
 		12750,      /* SDRAM frequency */
@@ -19023,10 +19023,10 @@ static struct tegra11_emc_pdata haydn_hw_rev_a_hynix_pdata = {
 	.num_tables = ARRAY_SIZE(haydn_hw_rev_a_hynix_table),
 };
 
-static struct tegra11_emc_pdata haydn_hw_rev_c_hynix_pdata = {
-	.description = "haydn_hw_rev_c_hynix_table 1007",
-	.tables = haydn_hw_rev_c_hynix_table,
-	.num_tables = ARRAY_SIZE(haydn_hw_rev_c_hynix_table),
+static struct tegra11_emc_pdata haydn_hw_rev_c_g_hynix_pdata = {
+	.description = "haydn_hw_rev_c_g_hynix_table 1007",
+	.tables = haydn_hw_rev_c_g_hynix_table,
+	.num_tables = ARRAY_SIZE(haydn_hw_rev_c_g_hynix_table),
 };
 
 static struct tegra11_emc_pdata haydn_hw_rev_a_elpida_pdata = {
@@ -19035,10 +19035,10 @@ static struct tegra11_emc_pdata haydn_hw_rev_a_elpida_pdata = {
 	.num_tables = ARRAY_SIZE(haydn_hw_rev_a_elpida_table),
 };
 
-static struct tegra11_emc_pdata haydn_hw_rev_c_elpida_pdata = {
-	.description = "haydn_hw_rev_c_elpida_table 1022",
-	.tables = haydn_hw_rev_c_elpida_table,
-	.num_tables = ARRAY_SIZE(haydn_hw_rev_c_elpida_table),
+static struct tegra11_emc_pdata haydn_hw_rev_c_g_elpida_pdata = {
+	.description = "haydn_hw_rev_c_g_elpida_table 1022",
+	.tables = haydn_hw_rev_c_g_elpida_table,
+	.num_tables = ARRAY_SIZE(haydn_hw_rev_c_g_elpida_table),
 };
 
 static struct tegra11_emc_pdata *macallan_get_emc_data(void)
@@ -19156,15 +19156,16 @@ static struct tegra11_emc_pdata *macallan_get_emc_data(void)
 				break;
 
 			case HW_REV_C:
+			case HW_REV_G:
 				if(mem_bootstrap_ad4 == 0 && mem_bootstrap_ad5 == 0)
 				{
-					printk("%s : use %s table.\n", __func__, haydn_hw_rev_c_hynix_pdata.description);
-					return &haydn_hw_rev_c_hynix_pdata;
+					printk("%s : use %s table.\n", __func__, haydn_hw_rev_c_g_hynix_pdata.description);
+					return &haydn_hw_rev_c_g_hynix_pdata;
 				}
 				else if(mem_bootstrap_ad4 == 1 && mem_bootstrap_ad5 == 0)
 				{
-					printk("%s : use %s table.\n", __func__, haydn_hw_rev_c_elpida_pdata.description);
-					return &haydn_hw_rev_c_elpida_pdata;
+					printk("%s : use %s table.\n", __func__, haydn_hw_rev_c_g_elpida_pdata.description);
+					return &haydn_hw_rev_c_g_elpida_pdata;
 				}
 				else
 				{
@@ -19228,6 +19229,9 @@ int __init macallan_emc_init(void)
 					break;
 				case HW_REV_C:
 					printk("%s : it's HW_REV_C.\n", __func__);
+					break;
+				case HW_REV_G:
+					printk("%s : it's HW_REV_G.\n", __func__);
 					break;
 
 				default:

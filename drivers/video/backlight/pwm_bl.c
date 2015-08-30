@@ -329,7 +329,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 		ret = PTR_ERR(bl);
 		goto err_bl;
 	}
-
+#ifdef CONFIG_EDP_FRAMEWORK
 	pb->tegra_pwm_bl_edp_client = devm_kzalloc(&pdev->dev,
 			sizeof(struct edp_client), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(pb->tegra_pwm_bl_edp_client)) {
@@ -349,7 +349,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 
 	battery_manager = edp_get_manager("battery");
 	if (!battery_manager) {
-		dev_err(&pdev->dev, "unable to get edp manager\n");
+		dev_info(&pdev->dev, "unable to get edp manager\n");
 	} else {
 		ret = edp_register_client(battery_manager,
 					pb->tegra_pwm_bl_edp_client);
@@ -374,7 +374,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	pb->tegra_pwm_bl_edp_client = NULL;
 
 edp_success:
-
+#endif
 	bl->props.brightness = data->dft_brightness;
 	backlight_update_status(bl);
 

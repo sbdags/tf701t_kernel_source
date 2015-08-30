@@ -479,7 +479,6 @@ static inline void tegra_hdmi_hotplug_enable(struct tegra_dc_hdmi_data *hdmi)
 void tegra_hdmi_enable_clk(void)
 {
 	struct tegra_dc_hdmi_data *hdmi = dc_hdmi;
-        printk("%s\n",__func__);
 	clk_prepare_enable(hdmi->clk);
 	tegra_periph_reset_deassert(hdmi->clk);
 }
@@ -488,7 +487,6 @@ EXPORT_SYMBOL(tegra_hdmi_enable_clk);
 void tegra_hdmi_disable_clk(void)
 {
 	struct tegra_dc_hdmi_data *hdmi = dc_hdmi;
-        printk("%s\n",__func__);
 	clk_disable_unprepare(hdmi->clk);
 }
 EXPORT_SYMBOL(tegra_hdmi_disable_clk);
@@ -1107,7 +1105,7 @@ static int tegra_dc_hdmi_init(struct tegra_dc *dc)
 	struct clk *disp2_clk = NULL;
 	struct tegra_hdmi_out *hdmi_out = NULL;
 	int err;
-        int hotplug_irq;
+	int hotplug_irq;
 
 	hdmi = kzalloc(sizeof(*hdmi), GFP_KERNEL);
 	if (!hdmi)
@@ -1276,7 +1274,6 @@ static int tegra_dc_hdmi_init(struct tegra_dc *dc)
 			enable_irq_wake(hotplug_irq);
 		}
 	}
-
 	wake_lock_init(&hdmi_hotplug_wakelock,
 			WAKE_LOCK_SUSPEND, "hdmi_hotplug_wakelock");
 
@@ -2135,6 +2132,7 @@ static void tegra_dc_hdmi_enable(struct tegra_dc *dc)
 static void tegra_dc_hdmi_disable(struct tegra_dc *dc)
 {
 	struct tegra_dc_hdmi_data *hdmi = tegra_dc_get_outdata(dc);
+
 	tegra_nvhdcp_set_plug(hdmi->nvhdcp, 0);
 
 #if !defined(CONFIG_ARCH_TEGRA_2x_SOC)

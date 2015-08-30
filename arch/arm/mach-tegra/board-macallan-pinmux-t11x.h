@@ -182,8 +182,8 @@ static __initdata struct tegra_pingroup_config macallan_pinmux_common[] = {
 	CEC_PINMUX(HDMI_CEC, CEC, NORMAL, NORMAL, INPUT, DISABLE, DISABLE),
 
 	/* I2C4 pinmux */
-	DDC_PINMUX(DDC_SCL, I2C4, NORMAL, NORMAL, INPUT, DISABLE, HIGH),
-	DDC_PINMUX(DDC_SDA, I2C4, NORMAL, NORMAL, INPUT, DISABLE, HIGH),
+	DDC_PINMUX(DDC_SCL, I2C4, NORMAL, NORMAL, INPUT, DISABLE, NORMAL),
+	DDC_PINMUX(DDC_SDA, I2C4, NORMAL, NORMAL, INPUT, DISABLE, NORMAL),
 
 	/* GPIO pinmux */
 	GPIO_PINMUX(GPIO_X4_AUD, NORMAL, NORMAL, OUTPUT, DISABLE),
@@ -254,7 +254,6 @@ static __initdata struct tegra_pingroup_config macallan_pinmux_common[] = {
 };
 
 static __initdata struct tegra_pingroup_config macallan_pinmux_hw_rev_e[] = {
-
 	/* EC AP_WAKE# */
 	DEFAULT_PINMUX(KB_COL5,       KBC,         PULL_UP,   NORMAL,     INPUT),
 	/* DOCK_IN# */
@@ -268,9 +267,7 @@ static __initdata struct tegra_pingroup_config macallan_pinmux_hw_rev_e[] = {
 	/* HALL SENSOR, LID# */
 	DEFAULT_PINMUX(ULPI_DATA4,   SPI2,         PULL_UP,   NORMAL,     INPUT),
 };
-
 static __initdata struct tegra_pingroup_config macallan_pinmux_haydn_hw_rev_a[] = {
-
 	/* EC AP_WAKE# */
 	DEFAULT_PINMUX(KB_COL5,       KBC,         PULL_UP,   NORMAL,     INPUT),
 	/* DOCK_IN# */
@@ -386,7 +383,6 @@ static struct gpio_init_pin_info init_gpio_mode_macallan_common[] = {
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PO6, true, 0),//PCB_ID8
 };
 
-
 static struct gpio_init_pin_info init_gpio_mode_macallan_hw_rev_e[] = {
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PQ5, true, 0),//PAD AP_WAKE#_1V8
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PQ2, false, 0),//PAD EC_REQUEST#_1V8
@@ -396,7 +392,6 @@ static struct gpio_init_pin_info init_gpio_mode_macallan_hw_rev_e[] = {
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PO5, true, 0),//1V8_O_LID#
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PH4, false, 0),
 };
-
 static struct gpio_init_pin_info init_gpio_mode_macallan_haydn_hw_rev_a[] = {
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PQ5, true, 0),//PAD AP_WAKE#_1V8
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PQ2, false, 0),//PAD EC_REQUEST#_1V8

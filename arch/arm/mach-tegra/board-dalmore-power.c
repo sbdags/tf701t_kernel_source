@@ -162,7 +162,7 @@ TPS65090_PDATA_INIT(DCDC2, dcdc2, NULL, 1, 1, 0, true, -1, -1);
 TPS65090_PDATA_INIT(DCDC3, dcdc3, NULL, 1, 1, 0, true, -1, -1);
 TPS65090_PDATA_INIT(LDO1, ldo1, NULL, 1, 1, 0, false, -1, -1);
 TPS65090_PDATA_INIT(LDO2, ldo2, NULL, 1, 1, 0, false, -1, -1);
-TPS65090_PDATA_INIT(FET1, fet1, NULL, 0, 0, 0, false, -1, 800);
+TPS65090_PDATA_INIT(FET1, fet1, NULL, 0, 1, 0, false, -1, 800);
 TPS65090_PDATA_INIT(FET3, fet3, tps65090_rails(DCDC2), 0, 0, 0, false, -1, 0);
 TPS65090_PDATA_INIT(FET4, fet4, tps65090_rails(DCDC2), 0, 0, 0, false, -1, 0);
 TPS65090_PDATA_INIT(FET5, fet5, tps65090_rails(DCDC2), 0, 0, 0, false, -1, 0);
@@ -955,9 +955,15 @@ FIXED_REG(2,	en_1v8_cam,	en_1v8_cam,
 	max77663_rails(sd2),	0,	0,
 	MAX77663_GPIO_BASE + MAX77663_GPIO5,	false,	true,	0,	1800);
 
+#ifdef CONFIG_TEGRA_HDMI_PRIMARY
+FIXED_REG(3,	vdd_hdmi_5v0,	vdd_hdmi_5v0,
+	tps65090_rails(DCDC1),	1,	1,
+	TEGRA_GPIO_PK1,	false,	true,	0,	5000);
+#else
 FIXED_REG(3,	vdd_hdmi_5v0,	vdd_hdmi_5v0,
 	tps65090_rails(DCDC1),	0,	0,
 	TEGRA_GPIO_PK1,	false,	true,	0,	5000);
+#endif
 
 FIXED_REG(4,	vpp_fuse,	vpp_fuse,
 	max77663_rails(sd2),	0,	0,
@@ -980,7 +986,7 @@ FIXED_REG(8,	dvdd_ts,	dvdd_ts,
 	TEGRA_GPIO_PH5,	false,	false,	1,	1800);
 
 FIXED_REG(9,	lcd_bl_en,	lcd_bl_en,
-	NULL,	0,	0,
+	NULL,	0,	1,
 	TEGRA_GPIO_PH2,	false,	true,	0,	5000);
 
 FIXED_REG(10,	avdd_hdmi_pll,	avdd_hdmi_pll,
@@ -1078,6 +1084,8 @@ int __init dalmore_palmas_regulator_init(void)
 
 	/* Set LDO6 startup time to 600us */
 	reg_idata_ldo6.constraints.startup_delay = 600;
+	ri_data_fet1.constraints.disable_time = 75000;
+
 	power_config = get_power_config();
 	if (board_info.fab == BOARD_FAB_A05) {
 		set_dalmore_power_config2();

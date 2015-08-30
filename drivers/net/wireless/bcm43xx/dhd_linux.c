@@ -57,6 +57,10 @@
 #include <dhd_bta.h>
 #endif
 
+#ifdef BCM4334X_MCC_ENABLE
+#include <proto/802.1d.h>
+#endif /* BCM4334X_MCC_ENABLE */
+
 #ifdef WLMEDIA_HTSF
 #include <linux/time.h>
 #include <htsf.h>
@@ -298,6 +302,7 @@ typedef struct dhd_info {
 	struct wake_lock wl_rxwake; /* Wifi rx wakelock */
 	struct wake_lock wl_ctrlwake; /* Wifi ctrl wakelock */
 	struct wake_lock wl_wdwake; /* Wifi wd wakelock */
+	struct wake_lock wl_apwake; /* Wifi ap mode wakelock */
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
@@ -433,7 +438,11 @@ uint dhd_pkt_filter_init = 0;
 module_param(dhd_pkt_filter_init, uint, 0);
 
 /* Pkt filter mode control */
+#ifdef BLACKLIST_PKT_FILTER
+uint dhd_master_mode = FALSE;
+#else
 uint dhd_master_mode = TRUE;
+#endif
 module_param(dhd_master_mode, uint, 0);
 
 #ifdef DHDTHREAD
@@ -1417,6 +1426,9 @@ dhd_op_if(dhd_if_t *ifp)
 
 #ifdef DHDTCPACK_SUPPRESS
 uint dhd_use_tcpack_suppress = TRUE;
+#ifdef BCM4334X_MCC_ENABLE
+uint dhd_mchan_disable_tcpack_suppress = FALSE;
+#endif /* BCM4334X_MCC_ENABLE */
 module_param(dhd_use_tcpack_suppress, uint, FALSE);
 extern bool dhd_tcpack_suppress(dhd_pub_t *dhdp, void *pkt);
 #endif /* DHDTCPACK_SUPPRESS */
@@ -1634,6 +1646,23 @@ dhd_sendpkt(dhd_pub_t *dhdp, int ifidx, void *pktbuf)
 #endif 
 		pktsetprio(pktbuf, FALSE);
 
+#ifdef BCM4334X_MCC_ENABLE
+	if (dhdp->mchan_flowctrl != 0x3) {
+		if (ifidx == 0)
+			PKTSETPRIO(pktbuf, PRIO_8021D_BE);
+		else
+			PKTSETPRIO(pktbuf, PRIO_8021D_VI);
+
+		if (dhd_use_tcpack_suppress) {
+			dhd_mchan_disable_tcpack_suppress = TRUE;
+			dhd_onoff_tcpack_sup(dhdp, FALSE);
+		}
+	} else if (dhd_mchan_disable_tcpack_suppress) {
+		dhd_onoff_tcpack_sup(dhdp, TRUE);
+		dhd_mchan_disable_tcpack_suppress = FALSE;
+	}
+#endif /* BCM4334X_MCC_ENABLE */
+
 #ifdef PROP_TXSTATUS
 	if (dhdp->wlfc_state) {
 		/* store the interface ID */
@@ -1779,6 +1808,14 @@ dhd_start_xmit(struct sk_buff *skb, struct net_device *net)
 	}
 #endif
 
+#ifdef BCM4334X_MCC_ENABLE
+	if ((dhd->pub.mchan_flowctrl != 0x3)&&(ifidx != 0))
+		if (((struct sk_buff*)(pktbuf))->destructor) {
+			((struct sk_buff*)(pktbuf))->destructor((struct sk_buff*)(pktbuf));
+			((struct sk_buff*)(pktbuf))->destructor = NULL;
+		}
+#endif /* BCM4334X_MCC_ENABLE */
+
 	ret = dhd_sendpkt(&dhd->pub, ifidx, pktbuf);
 
 done:
@@ -1828,10 +1865,13 @@ dhd_txflowcontrol(dhd_pub_t *dhdp, int ifidx, bool state)
 	else {
 		if (dhd->iflist[ifidx]) {
 			net = dhd->iflist[ifidx]->net;
-			if (state == ON)
+			if (state == ON) {
+				DHD_BTA(("pdebug: stop %d\n", ifidx));
 				netif_stop_queue(net);
-			else
+			} else {
+				DHD_BTA(("pdebug: start %d\n", ifidx));
 				netif_wake_queue(net);
+			}
 		}
 	}
 }
@@ -1865,6 +1905,34 @@ static const char *_get_packet_type_str(uint16 type)
 	return packet_type_info[n].str;
 }
 #endif /* DHD_RX_DUMP */
+
+#ifdef BCM4334X_MCC_ENABLE
+void dhd_mchan_ifctrl(dhd_pub_t *dhdp, uint8 mchan_ifctrl)
+{
+
+	if (dhdp->mchan_flowctrl == mchan_ifctrl)
+		return;
+
+	if ((dhdp->mchan_flowctrl & 0x1) != (mchan_ifctrl & 0x1)) {
+		//printf("change if 0 to %s\n", (mchan_ifctrl & 0x1)?"open":"close");
+		if (mchan_ifctrl & 0x1)
+			dhd_txflowcontrol(dhdp, 0, OFF);
+		else
+			dhd_txflowcontrol(dhdp, 0, ON);
+	}
+
+	if ((dhdp->mchan_flowctrl & 0x2) != (mchan_ifctrl & 0x2)) {
+		//printf("change if 1 to %s\n", (mchan_ifctrl & 0x2)?"open":"close");
+		if (mchan_ifctrl & 0x2)
+			dhd_txflowcontrol(dhdp, 1, OFF);
+		else
+			dhd_txflowcontrol(dhdp, 1, ON);
+	}
+	dhdp->mchan_flowctrl = mchan_ifctrl;
+
+	return;
+}
+#endif /* BCM4334X_MCC_ENABLE */
 
 void
 dhd_rx_frame(dhd_pub_t *dhdp, int ifidx, void *pktbuf, int numpkt, uint8 chan)
@@ -2920,10 +2988,12 @@ dhd_ioctl_entry(struct net_device *net, struct ifreq *ifr, int cmd)
 		goto done;
 	}
 
+#if 0 // Disable Permission Checking for Wi-Fi RF Test Program
 	if (!capable(CAP_NET_ADMIN)) {
 		bcmerror = BCME_EPERM;
 		goto done;
 	}
+#endif
 
 	bcmerror = dhd_ioctl_process(&dhd->pub, ifidx, &ioc);
 
@@ -3454,6 +3524,7 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	wake_lock_init(&dhd->wl_rxwake, WAKE_LOCK_SUSPEND, "wlan_rx_wake");
 	wake_lock_init(&dhd->wl_ctrlwake, WAKE_LOCK_SUSPEND, "wlan_ctrl_wake");
 	wake_lock_init(&dhd->wl_wdwake, WAKE_LOCK_SUSPEND, "wlan_wd_wake");
+	wake_lock_init(&dhd->wl_apwake, WAKE_LOCK_SUSPEND, "wlan_ap_wake");
 #endif /* CONFIG_HAS_WAKELOCK */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
 	mutex_init(&dhd->dhd_net_if_mutex);
@@ -3581,6 +3652,10 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	dhd->pub.tcp_ack_info_cnt = 0;
 	bzero(dhd->pub.tcp_ack_info_tbl, sizeof(struct tcp_ack_info)*MAXTCPSTREAMS);
 #endif /* DHDTCPACK_SUPPRESS */
+
+#ifdef BCM4334X_MCC_ENABLE
+	dhd->pub.mchan_flowctrl = 0x3;
+#endif /* BCM4334X_MCC_ENABLE */
 
 	dhd_state |= DHD_ATTACH_STATE_DONE;
 	dhd->dhd_state = dhd_state;
@@ -3881,8 +3956,6 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	uint roamvar = 1;
 #endif /* DISABLE_BUILTIN_ROAM */
 #endif /* ROAM_ENABLE */
-	int srl = 15;
-	int lrl = 15;
 
 #if defined(SOFTAP)
 	uint dtim = 1;
@@ -4023,6 +4096,9 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	}
 	else {
 		uint32 concurrent_mode = 0;
+#ifdef PKT_FILTER_SUPPORT
+		dhd_pkt_filter_enable = TRUE;
+#endif
 		if ((!op_mode && strstr(fw_path, "_p2p") != NULL) ||
 			(op_mode == DHD_FLAG_P2P_MODE)) {
 #if defined(ARP_OFFLOAD_SUPPORT)
@@ -4325,6 +4401,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 #endif /* ARP_OFFLOAD_SUPPORT */
 
 #ifdef PKT_FILTER_SUPPORT
+#ifndef BLACKLIST_PKT_FILTER
 	/* Setup default defintions for pktfilter , enable in suspend */
 	dhd->pktfilter_count = 6;
 	/* Setup filter to allow only unicast */
@@ -4336,7 +4413,21 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	dhd->pktfilter[DHD_MDNS_FILTER_NUM] = "104 0 0 0 0xFFFFFFFFFFFF 0x01005E0000FB";
 	/* apply APP pktfilter */
 	dhd->pktfilter[DHD_ARP_FILTER_NUM] = "105 0 0 12 0xFFFF 0x0806";
-
+#else
+	/* Setup default defintions for pktfilter , enable in suspend */
+	dhd->pktfilter_count = 7;
+	/* Setup filter to allow only unicast */
+	dhd->pktfilter[DHD_UNICAST_FILTER_NUM] = NULL;
+	dhd->pktfilter[DHD_BROADCAST_FILTER_NUM] = "101 0 0 0 0xFFFFFFFFFFFF 0xFFFFFFFFFFFF";
+	dhd->pktfilter[DHD_MULTICAST4_FILTER_NUM] = NULL;
+	dhd->pktfilter[DHD_MULTICAST6_FILTER_NUM] = NULL;
+	/* Add filter to pass multicastDNS packet and NOT filter out as Broadcast */
+	dhd->pktfilter[DHD_MDNS_FILTER_NUM] = NULL;
+	/* apply APP pktfilter */
+	dhd->pktfilter[DHD_ARP_FILTER_NUM] = "105 0 0 12 0xFFFF 0x0806";
+	/* Add filter to discard netbios name query packet */
+	dhd->pktfilter[DHD_NETBIOS_FILTER_NUM] = "106 0 0 12 0xFFFF000000000000000000FF000000000000000000000000FFFF 0x0800000000000000000000110000000000000000000000000089";
+#endif
 
 #if defined(SOFTAP)
 	if (ap_fw_loaded) {
@@ -4393,11 +4484,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	}
 #endif
 
-	dhd_wl_ioctl_cmd(dhd, WLC_SET_SRL, (char *)&srl, sizeof(srl), TRUE, 0);
-	dhd_wl_ioctl_cmd(dhd, WLC_SET_LRL, (char *)&lrl, sizeof(lrl), TRUE, 0);
-
 done:
-	dhd_poll = TRUE;
 	return ret;
 }
 
@@ -4955,6 +5042,7 @@ void dhd_detach(dhd_pub_t *dhdp)
 		wake_lock_destroy(&dhd->wl_rxwake);
 		wake_lock_destroy(&dhd->wl_ctrlwake);
 		wake_lock_destroy(&dhd->wl_wdwake);
+		wake_lock_destroy(&dhd->wl_apwake);
 #endif /* CONFIG_HAS_WAKELOCK */
 	}
 }
@@ -5750,7 +5838,6 @@ int net_os_rxfilter_add_remove(struct net_device *dev, int add_remove, int num)
 	char *filterp = NULL;
 	int filter_id = 0;
 	int ret = 0;
-
 	if (!dhd || (num == DHD_UNICAST_FILTER_NUM) ||
 		(num == DHD_MDNS_FILTER_NUM))
 		return ret;
@@ -5772,7 +5859,7 @@ int net_os_rxfilter_add_remove(struct net_device *dev, int add_remove, int num)
 		default:
 			return -EINVAL;
 	}
-
+#ifndef BLACKLIST_PKT_FILTER
 	/* Add filter */
 	if (add_remove) {
 		dhd->pub.pktfilter[num] = filterp;
@@ -5780,6 +5867,15 @@ int net_os_rxfilter_add_remove(struct net_device *dev, int add_remove, int num)
 	} else { /* Delete filter */
 		dhd_pktfilter_offload_delete(&dhd->pub, filter_id);
 	}
+#else
+	/* Add filter */
+	if (add_remove) {
+		dhd_pktfilter_offload_delete(&dhd->pub, filter_id);
+	} else { /* Delete filter */
+		dhd->pub.pktfilter[num] = filterp;
+		dhd_pktfilter_offload_set(&dhd->pub, dhd->pub.pktfilter[num]);
+	}
+#endif
 	return ret;
 }
 
@@ -5900,15 +5996,9 @@ static void dhd_hang_process(struct work_struct *work)
 	dev = dhd->iflist[0]->net;
 
 	if (dev) {
-#if 0
 		rtnl_lock();
 		dev_close(dev);
 		rtnl_unlock();
-#else
-		if ((ret = wldev_ioctl(dev, WLC_DOWN, &updown, sizeof(s32), false))) {
-			WL_ERR(("fail to set wlc down"));
-		}
-#endif
 #if defined(WL_WIRELESS_EXT)
 		wl_iw_send_priv_event(dev, "HANG");
 #endif
@@ -6327,6 +6417,23 @@ int dhd_os_wd_wake_unlock(dhd_pub_t *pub)
 	}
 	return ret;
 }
+
+int dhd_ap_wake_lock_timeout(dhd_pub_t *pub, int timeout)
+{
+	dhd_info_t *dhd = (dhd_info_t *)(pub->info);
+	unsigned long flags;
+	int ret = 0;
+
+	if (dhd) {
+		spin_lock_irqsave(&dhd->wakelock_spinlock, flags);
+#ifdef CONFIG_HAS_WAKELOCK
+		wake_lock_timeout(&dhd->wl_apwake, msecs_to_jiffies(timeout));
+#endif
+		spin_unlock_irqrestore(&dhd->wakelock_spinlock, flags);
+	}
+	return ret;
+}
+
 int dhd_os_check_if_up(void *dhdp)
 {
 	dhd_pub_t *pub = (dhd_pub_t *)dhdp;

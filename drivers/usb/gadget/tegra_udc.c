@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * Description:
  * High-speed USB device controller driver.
@@ -111,6 +111,25 @@ static struct pm_qos_request boost_cpu_freq_req;
 static u32 ep_queue_request_count;
 static u8 boost_cpufreq_work_flag, set_cpufreq_normal_flag;
 static struct timer_list boost_timer;
+static bool boost_enable = true;
+static int boost_enable_set(const char *arg, const struct kernel_param *kp)
+{
+	bool old_boost = boost_enable;
+	int ret = param_set_bool(arg, kp);
+	if (ret == 0 && old_boost && !boost_enable)
+		pm_qos_update_request(&boost_cpu_freq_req,
+				      PM_QOS_DEFAULT_VALUE);
+	return ret;
+}
+static int boost_enable_get(char *buffer, const struct kernel_param *kp)
+{
+	return param_get_bool(buffer, kp);
+}
+static struct kernel_param_ops boost_enable_ops = {
+	.set = boost_enable_set,
+	.get = boost_enable_get,
+};
+module_param_cb(boost_enable, &boost_enable_ops, &boost_enable, 0644);
 #endif
 
 static char *const tegra_udc_extcon_cable[] = {
@@ -973,10 +992,10 @@ tegra_ep_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_flags)
 
 	dir = ep_is_in(ep) ? DMA_TO_DEVICE : DMA_FROM_DEVICE;
 
-	spin_unlock_irqrestore(&udc->lock, flags);
-
-	if (!udc->driver || udc->gadget.speed == USB_SPEED_UNKNOWN)
+	if (!udc->driver || udc->gadget.speed == USB_SPEED_UNKNOWN) {
+		spin_unlock_irqrestore(&udc->lock, flags);
 		return -ESHUTDOWN;
+	}
 
 	req->ep = ep;
 
@@ -990,8 +1009,10 @@ tegra_ep_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_flags)
 		dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
 		req->req.dma = dma_map_single_attrs(dev, req->req.buf, ext, dir,
 						    &attrs);
-		if (dma_mapping_error(dev, req->req.dma))
+		if (dma_mapping_error(dev, req->req.dma)) {
+			spin_unlock_irqrestore(&udc->lock, flags);
 			return -EAGAIN;
+		}
 
 		dma_sync_single_for_device(dev, req->req.dma, orig, dir);
 
@@ -1008,11 +1029,11 @@ tegra_ep_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_flags)
 
 
 	/* build dtds and push them to device queue */
-	status = tegra_req_to_dtd(req, gfp_flags);
-	if (status)
+	status = tegra_req_to_dtd(req, GFP_ATOMIC);
+	if (status) {
+		spin_unlock_irqrestore(&udc->lock, flags);
 		goto err_unmap;
-
-	spin_lock_irqsave(&udc->lock, flags);
+	}
 
 	/* re-check if the ep has not been disabled */
 	if (unlikely(!ep->desc)) {
@@ -1122,7 +1143,7 @@ static int tegra_ep_dequeue(struct usb_ep *_ep, struct usb_request *_req)
 	/* Enable EP */
 out:
 	/* Touch the registers if cable is connected and phy is on */
-	if (udc->vbus_active) {
+	if (udc->vbus_active && ep->desc) {
 		epctrl = udc_readl(udc, EP_CONTROL_REG_OFFSET + (ep_num * 4));
 		if (ep_is_in(ep))
 			epctrl |= EPCTRL_TX_ENABLE;
@@ -1500,9 +1521,9 @@ EXPORT_SYMBOL(cable_status_unregister_client);
 int cable_status_notifier_call_chain(enum tegra_connect_type status, void *v)
 {
 	int ret = 0;
-	printk(KERN_INFO "%s ++++\n", __func__);
+	printk(KERN_INFO "%s Connect type = %d ++++\n", __func__, status);
 	ret = atomic_notifier_call_chain(&cable_status_notifier_list, status, v);
-	printk(KERN_INFO "%s -----\n", __func__);
+	printk(KERN_INFO "%s ------\n", __func__);
 	return ret;
 }
 
@@ -2418,8 +2439,11 @@ static void tegra_udc_boost_cpu_frequency_work(struct work_struct *work)
 	/* If CPU frequency is not boosted earlier boost it, and modify
 	 * timer expiry time to 2sec */
 	if (boost_cpufreq_work_flag) {
-		pm_qos_update_request(&boost_cpu_freq_req,
-			(s32)CONFIG_TEGRA_GADGET_BOOST_CPU_FREQ * 1000);
+		if (boost_enable)
+			pm_qos_update_request(
+				&boost_cpu_freq_req,
+				(s32)(CONFIG_TEGRA_GADGET_BOOST_CPU_FREQ
+				      * 1000));
 		boost_cpufreq_work_flag = 0;
 		DBG("%s(%d) boost CPU frequency\n", __func__, __LINE__);
 	}

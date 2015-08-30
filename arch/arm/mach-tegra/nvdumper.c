@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/nvdumper.c
  *
- * Copyright (C) 2011 NVIDIA Corporation
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -20,6 +20,9 @@
 #include <linux/module.h>
 #include <linux/reboot.h>
 #include "board.h"
+#ifdef CONFIG_TEGRA_USE_NCT
+#include <mach/nct.h>
+#endif
 
 #define NVDUMPER_CLEAN 0xf000caf3U
 #define NVDUMPER_DIRTY 0xdeadbeefU
@@ -62,16 +65,21 @@ struct notifier_block nvdumper_reboot_notifier = {
 static int __init nvdumper_init(void)
 {
 	int ret, dirty;
+#ifdef CONFIG_TEGRA_USE_NCT
+	union nct_item_type item;
+	int err;
+#endif
 
-	if (!nvdumper_reserved) {
+	if (!tegra_nvdumper_start) {
 		printk(KERN_INFO "nvdumper: not configured\n");
 		return -ENOTSUPP;
 	}
-	nvdumper_ptr = ioremap_nocache(nvdumper_reserved,
-			NVDUMPER_RESERVED_SIZE);
+	nvdumper_ptr = ioremap_nocache(tegra_nvdumper_start,
+			tegra_nvdumper_size);
 	if (!nvdumper_ptr) {
-		printk(KERN_INFO "nvdumper: failed to ioremap memory "
-			"at 0x%08lx\n", nvdumper_reserved);
+		printk(KERN_INFO "nvdumper: failed to ioremap memory " \
+			"at %08lu@0x%08lx\n", tegra_nvdumper_size,
+			tegra_nvdumper_start);
 		return -EIO;
 	}
 	ret = register_reboot_notifier(&nvdumper_reboot_notifier);
@@ -89,7 +97,22 @@ static int __init nvdumper_init(void)
 		printk(KERN_INFO "nvdumper: last reboot was unknown\n");
 		break;
 	}
+#ifdef CONFIG_TEGRA_USE_NCT
+	err = tegra_nct_read_item(NCT_ID_RAMDUMP, &item);
+	if (err < 0) {
+		pr_err("%s: NCT read failure\n", __func__);
+		return 0;
+	}
+
+	pr_info("%s: RAMDUMP flag(%d) from NCT\n", __func__, item.ramdump.flag);
+	if (item.ramdump.flag == 1)
+		set_dirty_state(1);
+	else
+		set_dirty_state(0);
+#else
 	set_dirty_state(1);
+#endif
+
 	return 0;
 }
 
@@ -100,7 +123,6 @@ static void __exit nvdumper_exit(void)
 	iounmap(nvdumper_ptr);
 }
 
-module_init(nvdumper_init);
-module_exit(nvdumper_exit);
+core_initcall(nvdumper_init);
 
 MODULE_LICENSE("GPL");

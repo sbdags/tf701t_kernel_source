@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-pluto-panel.c
  *
- * Copyright (C) 2012-2013 NVIDIA Corporation. All rights reserved.
+ * Copyright (C) 2012-2014 NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -255,7 +255,6 @@ static struct tegra_fb_data pluto_disp2_fb_data = {
 };
 
 static struct tegra_dc_platform_data pluto_disp2_pdata = {
-	.flags		= TEGRA_DC_FLAG_ENABLED,
 	.default_out	= &pluto_disp2_out,
 	.fb		= &pluto_disp2_fb_data,
 	.emc_clk_rate	= 300000000,
